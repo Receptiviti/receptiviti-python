@@ -1,3 +1,4 @@
+from typing import Union
 import os
 from time import perf_counter, sleep
 import sys
@@ -11,7 +12,7 @@ from .status import status
 from .readin_env import readin_env
 
 
-def process(bundle: pandas.DataFrame, ops: dict) -> pandas.DataFrame | None:
+def process(bundle: pandas.DataFrame, ops: dict) -> Union[pandas.DataFrame, None]:
     body = [
         {"content": text, "request_id": hashlib.md5(text.encode()).hexdigest(), **ops["add"]}
         for text in bundle["text"]
@@ -29,19 +30,19 @@ def process(bundle: pandas.DataFrame, ops: dict) -> pandas.DataFrame | None:
 
 
 def request(
-    text: str | list | pandas.DataFrame,
-    output: str | None = None,
-    id: str | list | None = None,
-    text_column: str | None = None,
-    id_column: str | None = None,
+    text: Union[str, list, pandas.DataFrame],
+    output: Union[str, None] = None,
+    id: Union[str, list, None] = None,
+    text_column: Union[str, None] = None,
+    id_column: Union[str, None] = None,
     api_args: dict = {},
     bundle_size=1000,
     bundle_byte_limit=75e5,
     retry_limit=50,
     cores=cpu_count() - 2,
-    verbose=True,
+    verbose=False,
     overwrite=False,
-    dotenv: bool | str = True,
+    dotenv: Union[bool, str] = True,
     key=os.getenv("RECEPTIVITI_KEY", ""),
     secret=os.getenv("RECEPTIVITI_SECRET", ""),
     url=os.getenv("RECEPTIVITI_URL", ""),
@@ -87,7 +88,7 @@ def request(
         key = os.getenv("RECEPTIVITI_KEY", "")
     if secret == "":
         secret = os.getenv("RECEPTIVITI_SECRET", "")
-    api_status = status(url, key, secret, False)
+    api_status = status(url, key, secret, dotenv, verbose=False)
     if api_status.status_code != 200:
         raise RuntimeError(f"API status failed: {api_status.status_code}")
 

@@ -1,3 +1,4 @@
+from typing import Union
 import os
 import re
 import requests
@@ -8,7 +9,7 @@ def status(
     url: str = os.getenv("RECEPTIVITI_URL", ""),
     key: str = os.getenv("RECEPTIVITI_KEY", ""),
     secret: str = os.getenv("RECEPTIVITI_SECRET", ""),
-    dotenv: bool | str = False,
+    dotenv: Union[bool, str] = False,
     verbose=True,
 ) -> requests.Response:
     """
