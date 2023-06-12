@@ -1,0 +1,17 @@
+__pycache__/
+*.swp
+*.py[cod]
+*.dll
+*.so
+*.log
+*.bak
+.DS_Store
+.idea/
+/.coverage*
+/.benchmarks/
+/.env/
+/.venv/
+/.idea/
+/.mypy_cache/
+/.pytest_cache/
+/dist/
