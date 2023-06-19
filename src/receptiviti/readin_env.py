@@ -1,3 +1,5 @@
+"""Read in a environment variables."""
+
 import os
 import re
 
@@ -8,13 +10,14 @@ def readin_env(path=".", name=".env", overwrite=False) -> None:
 
     Args:
       path (str): Path to a .env file, or to a directory containing such a file.
-      By default, this will fall back on `~/Documents`.
+        By default, this will fall back on `~/Documents`.
       name (str): Name of the file, when `path` points to a directory.
+        By default, this will fall back on `.Renviron`.
       overwrite (bool): If `True`, overwrites existing environment variables with
-      the same name as those in the .env file.
+        the same name as those in the .env file.
 
     Returns:
-      None: If a file is found, it will add contents to `os.environ`.
+      If a file is found, it will add contents to `os.environ`.
     """
     path = os.path.expanduser(path)
     envpath = path if os.path.isfile(path) else path + "/" + name

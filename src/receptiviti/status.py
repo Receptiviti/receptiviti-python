@@ -1,3 +1,5 @@
+"""Check the status of the API."""
+
 from typing import Union
 import os
 import re
@@ -26,7 +28,7 @@ def status(
       verbose (bool): If `False`, will not print status messages.
 
     Returns:
-      requests.Response: Response from the API server.
+      Response from the API server.
 
     Examples:
         >>> receptiviti.status()
