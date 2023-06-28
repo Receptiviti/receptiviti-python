@@ -8,6 +8,8 @@ import sys
 import re
 import hashlib
 import requests
+import json
+import math
 import numpy
 import pandas
 from .status import status
@@ -15,19 +17,29 @@ from .readin_env import readin_env
 
 
 def _process(bundle: pandas.DataFrame, ops: dict) -> Union[pandas.DataFrame, None]:
-    body = [
-        {"content": text, "request_id": hashlib.md5(text.encode()).hexdigest(), **ops["add"]}
-        for text in bundle["text"]
-    ]
-    res = requests.post(ops["url"], auth=ops["auth"], json=body, timeout=9999)
+    body = []
+    bundle.insert(0, "text_hash", "")
+    for i, text in enumerate(bundle["text"]):
+        text_hash = ops["add_hash"] + hashlib.md5(text.encode()).hexdigest()
+        bundle.iat[i, 0] = text_hash
+        body.append({"content": text, "request_id": text_hash, **ops["add"]})
+    res = _request(json.dumps(body), ops["url"], ops["auth"], ops["retries"])
+    if res is not None:
+        res = pandas.json_normalize(res)
+        res.insert(0, "id", bundle["id"])
+    return res
+
+
+def _request(
+    body: str, url: str, auth: requests.auth.HTTPBasicAuth, retries: int
+) -> Union[dict, None]:
+    res = requests.post(url, body, auth=auth, timeout=9999)
     content = None
     if res.status_code == 200:
-        content = pandas.json_normalize(res.json()["results"])
-    elif ops["retries"] > 0:
+        content = res.json()["results"]
+    elif retries > 0:
         sleep(1)
-        ops["retries"] -= 1
-        print(res.text)
-        _process(bundle, ops)
+        _request(body, url, auth, retries - 1)
     return content
 
 
@@ -127,22 +139,25 @@ def request(
             raise RuntimeError("`text` is a DataFrame, but no `text_column` is specified")
     if isinstance(text, str):
         text = [text]
-    n_texts = len(text)
     if ids is None:
-        ids = numpy.arange(1, n_texts + 1)
-    elif len(ids) != n_texts:
+        ids = numpy.arange(1, len(text) + 1)
+    elif len(ids) != len(text):
         raise RuntimeError("`ids` is not the same length as `text`")
+    if len(ids) != len(list(set(ids))):
+        raise RuntimeError("`ids` contains duplicates")
 
     # prepare bundles
     if verbose:
         print(f"preparing text ({perf_counter() - start_time:.4f})")
     data = pandas.DataFrame({"text": text, "id": ids})
-    data = data[(~data.duplicated(subset=["text"])) | (data["text"] == "") | (data["text"].isna())]
-    if not data.ndim:
+    data = data[~(data.duplicated(subset=["text"]) | (data["text"] == "") | data["text"].isna())]
+    n_texts = data.shape[0]
+    if not n_texts:
         raise RuntimeError("no valid texts to process")
-    n_bundles = n_texts / min(1000, max(1, bundle_size))
+    bundle_size = max(1, bundle_size)
+    n_bundles = math.ceil(n_texts / min(1000, bundle_size))
     groups = data.groupby(
-        numpy.tile(numpy.arange(n_bundles + 1), n_texts)[:n_texts], group_keys=False
+        numpy.sort(numpy.tile(numpy.arange(n_bundles) + 1, bundle_size))[:n_texts], group_keys=False
     )
     bundles = []
     for _, group in groups:
@@ -174,19 +189,23 @@ def request(
     # process bundles
     args = {
         "url": f"{url}/{version}/{endpoint}/bulk",
-        "auth": (key, secret),
+        "auth": requests.auth.HTTPBasicAuth(key, secret),
         "retries": retry_limit,
         "add": {} if api_args is None else api_args,
     }
+    args["add_hash"] = hashlib.md5(json.dumps(args["add"]).encode()).hexdigest()
 
     if cores > 1:
         with Pool(cores) as pool:
             res = pool.starmap_async(_process, [(b, args) for b in bundles]).get()
     else:
         res = [_process(b, args) for b in bundles]
-    res = pandas.concat(res, ignore_index=True, sort=False)
 
     # finalize
+    if verbose:
+        print(f"preparing output ({perf_counter() - start_time:.4f})")
+    res = pandas.concat(res, ignore_index=True, sort=False)
+
     if output is not None:
         if verbose:
             print(f"writing results to file: {output} ({perf_counter() - start_time:.4f})")
