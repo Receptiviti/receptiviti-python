@@ -20,13 +20,13 @@ def _process(bundle: pandas.DataFrame, ops: dict) -> Union[pandas.DataFrame, Non
     body = []
     bundle.insert(0, "text_hash", "")
     for i, text in enumerate(bundle["text"]):
-        text_hash = ops["add_hash"] + hashlib.md5(text.encode()).hexdigest()
+        text_hash = hashlib.md5(text.encode()).hexdigest() + ":" + ops["add_hash"]
         bundle.iat[i, 0] = text_hash
         body.append({"content": text, "request_id": text_hash, **ops["add"]})
     res = _request(json.dumps(body), ops["url"], ops["auth"], ops["retries"])
     if res is not None:
         res = pandas.json_normalize(res)
-        res.insert(0, "id", bundle["id"])
+        res.insert(0, "id", bundle["id"].to_list())
     return res
 
 
@@ -49,6 +49,7 @@ def request(
     ids: Union[str, List[Union[str, int]], None] = None,
     text_column: Union[str, None] = None,
     id_column: Union[str, None] = None,
+    return_text=False,
     api_args: Union[dict, None] = None,
     frameworks: Union[str, List[str], None] = None,
     framework_prefix: Union[bool, None] = None,
@@ -74,6 +75,7 @@ def request(
       ids (str | list): Vector of IDs for each `text`, or a column name in `text` containing IDs.
       text_column (str): Column name in `text` containing text.
       id_column (str): Column name in `text` containing IDs.
+      return_text (bool): If `True`, will include a `text` column in the output with the original text.
       api_args (dict): Additional arguments to include in the request.
       frameworks (str | list): One or more names of frameworks to return.
       framework_prefix (bool): If `False`, will drop framework prefix from column names.
@@ -139,24 +141,27 @@ def request(
             raise RuntimeError("`text` is a DataFrame, but no `text_column` is specified")
     if isinstance(text, str):
         text = [text]
-    if ids is None:
+    id_specified = ids is not None
+    if not id_specified:
         ids = numpy.arange(1, len(text) + 1)
     elif len(ids) != len(text):
         raise RuntimeError("`ids` is not the same length as `text`")
-    if len(ids) != len(list(set(ids))):
+    original_ids = set(ids)
+    if len(ids) != len(original_ids):
         raise RuntimeError("`ids` contains duplicates")
 
     # prepare bundles
     if verbose:
         print(f"preparing text ({perf_counter() - start_time:.4f})")
     data = pandas.DataFrame({"text": text, "id": ids})
-    data = data[~(data.duplicated(subset=["text"]) | (data["text"] == "") | data["text"].isna())]
-    n_texts = data.shape[0]
+    n_original = data.shape[0]
+    groups = data[~(data.duplicated(subset=["text"]) | (data["text"] == "") | data["text"].isna())]
+    n_texts = groups.shape[0]
     if not n_texts:
         raise RuntimeError("no valid texts to process")
     bundle_size = max(1, bundle_size)
     n_bundles = math.ceil(n_texts / min(1000, bundle_size))
-    groups = data.groupby(
+    groups = groups.groupby(
         numpy.sort(numpy.tile(numpy.arange(n_bundles) + 1, bundle_size))[:n_texts], group_keys=False
     )
     bundles = []
@@ -193,7 +198,7 @@ def request(
         "retries": retry_limit,
         "add": {} if api_args is None else api_args,
     }
-    args["add_hash"] = hashlib.md5(json.dumps(args["add"]).encode()).hexdigest()
+    args["add_hash"] = str(hash(json.dumps(args["add"])))
 
     if cores > 1:
         with Pool(cores) as pool:
@@ -205,19 +210,47 @@ def request(
     if verbose:
         print(f"preparing output ({perf_counter() - start_time:.4f})")
     res = pandas.concat(res, ignore_index=True, sort=False)
+    res.rename(columns={"response_id": "text_hash"}, inplace=True)
+    if return_text or res.shape[0] != n_original:
+        data.set_index("id", inplace=True)
+        res.set_index("id", inplace=True)
+        res.insert(1, "text", data["text"])
+        if res.shape[0] != n_original:
+            data_absent = data.loc[list(set(data.index).difference(res.index))]
+            data_absent = data_absent.loc[data_absent["text"].isin(res["text"])]
+            if data.size:
+                res.reset_index(inplace=True)
+                res.set_index("text", inplace=True)
+                data_dupes = res.loc[data_absent["text"]]
+                data_dupes["id"] = data_absent.index.to_list()
+                res = pandas.concat([res, data_dupes])
+                res.reset_index(inplace=True, drop=True)
+                res.set_index("id", inplace=True)
+            missing_ids = original_ids.difference(res.index)
+            if len(missing_ids):
+                res = pandas.concat(
+                    [res, pandas.DataFrame(index=list(original_ids.difference(res.index)))]
+                )
+            res = res.loc[data.index]
+            res.insert(1, "text", data["text"])
+            if not return_text:
+                res.drop("text", axis=1, inplace=True)
+        res.reset_index(inplace=True, names=["id"])
 
     if output is not None:
         if verbose:
             print(f"writing results to file: {output} ({perf_counter() - start_time:.4f})")
         res.to_csv(output, index=False)
 
-    res = res.drop(
-        filter(
-            lambda col: col in res.columns,
-            ["response_id", "language", "version", "error", "custom"],
-        ),
+    drops = []
+    if not id_specified:
+        drops.append("id")
+    res.drop(
+        {*drops, "language", "version", "error", "custom"}.intersection(res.columns),
         axis="columns",
+        inplace=True,
     )
+    print(id_specified)
     if frameworks is not None:
         if verbose:
             print(f"selecting frameworks ({perf_counter() - start_time:.4f})")
@@ -225,8 +258,13 @@ def request(
             if framework_prefix is None:
                 framework_prefix = False
             frameworks = [frameworks]
-        select = ["request_id", *frameworks]
-        res = res.filter(regex=f"^(?:{'|'.join(select)})(?:$|\\.)")
+        select = []
+        if id_specified:
+            select.append("id")
+        if return_text:
+            select.append("text")
+        select.append("text_hash")
+        res = res.filter(regex=f"^(?:{'|'.join(select + frameworks)})(?:$|\\.)")
     if isinstance(framework_prefix, bool) and not framework_prefix:
         prefix_pattern = re.compile("^[^.]+\\.")
         res.columns = [prefix_pattern.sub("", col) for col in res.columns]

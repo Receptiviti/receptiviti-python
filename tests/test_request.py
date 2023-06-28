@@ -13,7 +13,8 @@ class TestRequest:
 
     def test_multi_text(self):
         res = receptiviti.request(["text to score", float("nan"), "another text", "another text"])
-        assert res["summary.word_count"].to_list() == [3, 2]
+        assert str(res["summary.word_count"][1]) == "nan"
+        assert res["summary.word_count"].iloc[[0, 2, 3]].to_list() == [3, 2, 2]
 
     def test_framework_selection(self):
         res = receptiviti.request(["text to score", "another text"], frameworks="summary")
@@ -22,8 +23,12 @@ class TestRequest:
 
     def test_framework_prefix_works(self):
         res = receptiviti.request(
-            ["text to score", "another text"], frameworks="summary", framework_prefix=True
+            ["text to score", "another text"],
+            frameworks="summary",
+            framework_prefix=True,
+            return_text=True,
         )
+        assert res["text"].to_list() == ["text to score", "another text"]
         assert res["summary.word_count"].to_list() == [3, 2]
 
     @pytest.mark.skipif(not os.path.isfile("../data.csv"), reason="no test file present")
