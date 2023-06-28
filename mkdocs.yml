@@ -49,4 +49,4 @@ nav:
       - functions/request.md
       - functions/status.md
       - functions/readin_env.md
-  - 'Test Coverage': coverage
+  - 'Test Coverage': coverage/index.html

@@ -1,5 +1,7 @@
-import pytest
 import os
+from io import StringIO
+from contextlib import redirect_stdout
+import pytest
 import receptiviti
 
 receptiviti.readin_env()
@@ -21,15 +23,29 @@ class TestRequest:
         assert res.shape == (2, 10)
         assert res["word_count"].to_list() == [3, 2]
 
-    def test_framework_prefix_works(self):
+    def test_framework_prefix(self):
         res = receptiviti.request(
-            ["text to score", "another text"],
-            frameworks="summary",
-            framework_prefix=True,
-            return_text=True,
+            ["text to score", "another text"], frameworks="summary", framework_prefix=True
+        )
+        assert res["summary.word_count"].to_list() == [3, 2]
+
+    def test_id_text(self):
+        res = receptiviti.request(
+            ["text to score", "another text"], ids=["a", "b"], return_text=True
         )
         assert res["text"].to_list() == ["text to score", "another text"]
-        assert res["summary.word_count"].to_list() == [3, 2]
+        assert res["id"].to_list() == ["a", "b"]
+
+    def test_verbose(self):
+        with redirect_stdout(StringIO()) as out:
+            res = receptiviti.request(
+                "text to score", frameworks=["summary", "sallee"], verbose=True
+            )
+        messages = out.getvalue().split("\n")
+        expected = ["prep"] * 3 + ["sele", "done", ""]
+        assert len(messages) == len(expected) and all(
+            line[:4] == expected[i] for i, line in enumerate(messages)
+        )
 
     @pytest.mark.skipif(not os.path.isfile("../data.csv"), reason="no test file present")
     def test_from_file(self):

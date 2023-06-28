@@ -250,7 +250,6 @@ def request(
         axis="columns",
         inplace=True,
     )
-    print(id_specified)
     if frameworks is not None:
         if verbose:
             print(f"selecting frameworks ({perf_counter() - start_time:.4f})")
