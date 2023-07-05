@@ -3,7 +3,8 @@
 from typing import Union, List
 import os
 from time import perf_counter, sleep
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Process, Queue, cpu_count
+from tqdm import tqdm
 import sys
 import re
 import hashlib
@@ -16,7 +17,29 @@ from .status import status
 from .readin_env import readin_env
 
 
-def _process(bundle: pandas.DataFrame, ops: dict) -> Union[pandas.DataFrame, None]:
+def _queue_manager(
+    queue: Queue, waiter: Queue, n_texts: int, n_bundles: int, use_pb=True, verbose=False
+):
+    if use_pb:
+        pb = tqdm(total=n_texts, leave=verbose)
+    res = []
+    for size, chunk in iter(queue.get, None):
+        if size:
+            if use_pb:
+                pb.update(size)
+            res.append(chunk)
+            if len(res) >= n_bundles:
+                break
+    waiter.put(res)
+    return
+
+
+def _process(
+    bundle: pandas.DataFrame,
+    ops: dict,
+    queue: Union[Queue, None] = None,
+    pb: Union[tqdm, None] = None,
+) -> Union[pandas.DataFrame, None]:
     body = []
     bundle.insert(0, "text_hash", "")
     for i, text in enumerate(bundle["text"]):
@@ -27,6 +50,10 @@ def _process(bundle: pandas.DataFrame, ops: dict) -> Union[pandas.DataFrame, Non
     if res is not None:
         res = pandas.json_normalize(res)
         res.insert(0, "id", bundle["id"].to_list())
+        if queue is not None:
+            queue.put((res.shape[0], res))
+        elif pb is not None:
+            pb.update(bundle.shape[0])
     return res
 
 
@@ -34,13 +61,13 @@ def _request(
     body: str, url: str, auth: requests.auth.HTTPBasicAuth, retries: int
 ) -> Union[dict, None]:
     res = requests.post(url, body, auth=auth, timeout=9999)
-    content = None
     if res.status_code == 200:
-        content = res.json()["results"]
+        res = res.json()["results"]
+        return res
     elif retries > 0:
-        sleep(1)
-        _request(body, url, auth, retries - 1)
-    return content
+        cd = re.search("[0-9]+(?:\\.[0-9]+)?", res.json()["message"])
+        sleep(1 if cd is None else float(cd[0]) / 1e3)
+        return _request(body, url, auth, retries - 1)
 
 
 def request(
@@ -58,6 +85,7 @@ def request(
     retry_limit=50,
     cores=cpu_count() - 2,
     verbose=False,
+    progress_bar=True,
     overwrite=False,
     dotenv: Union[bool, str] = True,
     key=os.getenv("RECEPTIVITI_KEY", ""),
@@ -84,7 +112,8 @@ def request(
       bundle_byte_limit (float): Maximum byte size of each bundle.
       retry_limit (int): Number of times to retry a failed request.
       cores (int): Number of CPU cores to use.
-      verbose (bool): If `False`, will not print status messages.
+      verbose (bool): If `True`, will print status messages and preserve the progress bar.
+      progress_bar (bool): If `False`, will not display a progress bar.
       overwrite (bool): If `True`, will overwrite an existing `output` file.
       dotenv (bool | str): Path to a .env file to read environment variables from. By default,
         will for a file in the current directory or `~/Documents`. Passed to `readin_env` as `path`.
@@ -187,7 +216,8 @@ def request(
             bundles.append(group)
     if verbose:
         print(
-            f"prepared text in {len(bundles)} {'bundles' if len(bundles) > 1 else 'bundle'}",
+            f"prepared {n_texts} unique text{'s' if n_texts > 1 else ''} in "
+            f"{len(bundles)} {'bundles' if len(bundles) > 1 else 'bundle'}",
             f"({perf_counter() - start_time:.4f})",
         )
 
@@ -199,18 +229,32 @@ def request(
         "add": {} if api_args is None else api_args,
     }
     args["add_hash"] = str(hash(json.dumps(args["add"])))
-
+    use_pb = (verbose and progress_bar) or progress_bar
     if cores > 1:
-        with Pool(cores) as pool:
-            res = pool.starmap_async(_process, [(b, args) for b in bundles]).get()
+        waiter = Queue()
+        queue = Queue()
+        manager = Process(
+            target=_queue_manager, args=(queue, waiter, n_texts, len(bundles), use_pb, verbose)
+        )
+        manager.start()
+        procs = [Process(target=_process, args=(b, args, queue)) for b in bundles]
+        for cl in procs:
+            cl.start()
+        for cl in procs:
+            cl.join()
+        res = waiter.get()
     else:
-        res = [_process(b, args) for b in bundles]
+        if use_pb:
+            pb = tqdm(total=n_texts, leave=verbose)
+        res = [_process(b, args, pb=pb) for b in bundles]
+        if use_pb:
+            pb.close()
 
     # finalize
     if verbose:
         print(f"preparing output ({perf_counter() - start_time:.4f})")
     res = pandas.concat(res, ignore_index=True, sort=False)
-    res.rename(columns={"response_id": "text_hash"}, inplace=True)
+    res.rename(columns={"request_id": "text_hash"}, inplace=True)
     if return_text or res.shape[0] != n_original:
         data.set_index("id", inplace=True)
         res.set_index("id", inplace=True)
@@ -246,7 +290,7 @@ def request(
     if not id_specified:
         drops.append("id")
     res.drop(
-        {*drops, "language", "version", "error", "custom"}.intersection(res.columns),
+        {*drops, "response_id", "language", "version", "error", "custom"}.intersection(res.columns),
         axis="columns",
         inplace=True,
     )

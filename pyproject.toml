@@ -27,6 +27,7 @@ dependencies = [
   "requests",
   "numpy",
   "pandas",
+  "tqdm",
 ]
 
 [project.optional-dependencies]

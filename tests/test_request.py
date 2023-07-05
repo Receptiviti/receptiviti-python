@@ -38,9 +38,7 @@ class TestRequest:
 
     def test_verbose(self):
         with redirect_stdout(StringIO()) as out:
-            res = receptiviti.request(
-                "text to score", frameworks=["summary", "sallee"], verbose=True
-            )
+            receptiviti.request("text to score", frameworks=["summary", "sallee"], verbose=True)
         messages = out.getvalue().split("\n")
         expected = ["prep"] * 3 + ["sele", "done", ""]
         assert len(messages) == len(expected) and all(
@@ -49,5 +47,10 @@ class TestRequest:
 
     @pytest.mark.skipif(not os.path.isfile("../data.csv"), reason="no test file present")
     def test_from_file(self):
-        res = receptiviti.request("../data.csv", text_column="texts", bundle_size=100)
-        assert len(res) == 489
+        res_parallel = receptiviti.request(
+            "../data.csv", text_column="texts", id_column="id", bundle_size=20
+        )
+        res_serial = receptiviti.request(
+            "../data.csv", text_column="texts", id_column="id", bundle_size=20, cores=1
+        )
+        assert res_parallel["summary.word_count"].sum() == res_serial["summary.word_count"].sum()
