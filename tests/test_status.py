@@ -24,6 +24,5 @@ class TestStatus:
 
     @pytest.mark.skipif(condition=os.getenv("RECEPTIVITI_KEY") is None, reason="no API key")
     def test_key_works(self):
-        receptiviti.readin_env("~/Documents/.Renviron")
-        res = receptiviti.status(dotenv=True)
+        res = receptiviti.status()
         assert res.status_code == 200

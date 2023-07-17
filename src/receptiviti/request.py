@@ -2,8 +2,11 @@
 
 from typing import Union, List
 import os
-from time import perf_counter, sleep
-from multiprocessing import Process, Queue, cpu_count
+from glob import glob
+import pickle
+from tempfile import gettempdir
+from time import perf_counter, sleep, time
+from multiprocessing import Process, Queue
 from tqdm import tqdm
 import sys
 import re
@@ -16,58 +19,7 @@ import pandas
 from .status import status
 from .readin_env import readin_env
 
-
-def _queue_manager(
-    queue: Queue, waiter: Queue, n_texts: int, n_bundles: int, use_pb=True, verbose=False
-):
-    if use_pb:
-        pb = tqdm(total=n_texts, leave=verbose)
-    res = []
-    for size, chunk in iter(queue.get, None):
-        if size:
-            if use_pb:
-                pb.update(size)
-            res.append(chunk)
-            if len(res) >= n_bundles:
-                break
-    waiter.put(res)
-    return
-
-
-def _process(
-    bundle: pandas.DataFrame,
-    ops: dict,
-    queue: Union[Queue, None] = None,
-    pb: Union[tqdm, None] = None,
-) -> Union[pandas.DataFrame, None]:
-    body = []
-    bundle.insert(0, "text_hash", "")
-    for i, text in enumerate(bundle["text"]):
-        text_hash = hashlib.md5(text.encode()).hexdigest() + ":" + ops["add_hash"]
-        bundle.iat[i, 0] = text_hash
-        body.append({"content": text, "request_id": text_hash, **ops["add"]})
-    res = _request(json.dumps(body), ops["url"], ops["auth"], ops["retries"])
-    if res is not None:
-        res = pandas.json_normalize(res)
-        res.insert(0, "id", bundle["id"].to_list())
-        if queue is not None:
-            queue.put((res.shape[0], res))
-        elif pb is not None:
-            pb.update(bundle.shape[0])
-    return res
-
-
-def _request(
-    body: str, url: str, auth: requests.auth.HTTPBasicAuth, retries: int
-) -> Union[dict, None]:
-    res = requests.post(url, body, auth=auth, timeout=9999)
-    if res.status_code == 200:
-        res = res.json()["results"]
-        return res
-    elif retries > 0:
-        cd = re.search("[0-9]+(?:\\.[0-9]+)?", res.json()["message"])
-        sleep(1 if cd is None else float(cd[0]) / 1e3)
-        return _request(body, url, auth, retries - 1)
+REQUEST_CACHE = gettempdir() + "/receptiviti_request_cache/"
 
 
 def request(
@@ -76,17 +28,21 @@ def request(
     ids: Union[str, List[Union[str, int]], None] = None,
     text_column: Union[str, None] = None,
     id_column: Union[str, None] = None,
+    file_type: str = "txt",
     return_text=False,
     api_args: Union[dict, None] = None,
     frameworks: Union[str, List[str], None] = None,
     framework_prefix: Union[bool, None] = None,
     bundle_size=1000,
     bundle_byte_limit=75e5,
+    collapse_lines=False,
     retry_limit=50,
-    cores=cpu_count() - 2,
+    request_cache=True,
+    parallel=True,
     verbose=False,
     progress_bar=True,
     overwrite=False,
+    text_as_paths=False,
     dotenv: Union[bool, str] = True,
     key=os.getenv("RECEPTIVITI_KEY", ""),
     secret=os.getenv("RECEPTIVITI_SECRET", ""),
@@ -103,18 +59,24 @@ def request(
       ids (str | list): Vector of IDs for each `text`, or a column name in `text` containing IDs.
       text_column (str): Column name in `text` containing text.
       id_column (str): Column name in `text` containing IDs.
-      return_text (bool): If `True`, will include a `text` column in the output with the original text.
+      file_type (str): Extension of the file(s) to be read in from a directory (`txt` or `csv`).
+      return_text (bool): If `True`, will include a `text` column in the output with the
+        original text.
       api_args (dict): Additional arguments to include in the request.
       frameworks (str | list): One or more names of frameworks to return.
       framework_prefix (bool): If `False`, will drop framework prefix from column names.
         If one framework is selected, will default to `False`.
       bundle_size (int): Maximum number of texts per bundle.
       bundle_byte_limit (float): Maximum byte size of each bundle.
+      collapse_lines (bool): If `True`, will treat files as containing single texts, and
+        collapse multiple lines.
       retry_limit (int): Number of times to retry a failed request.
-      cores (int): Number of CPU cores to use.
+      parallel (bool): If `False`, will always process bundles on a single CPU core.
       verbose (bool): If `True`, will print status messages and preserve the progress bar.
       progress_bar (bool): If `False`, will not display a progress bar.
       overwrite (bool): If `True`, will overwrite an existing `output` file.
+      text_as_paths (bool): If `True`, will explicitly mark `text` as a list of file paths.
+        Otherwise, this will be detected.
       dotenv (bool | str): Path to a .env file to read environment variables from. By default,
         will for a file in the current directory or `~/Documents`. Passed to `readin_env` as `path`.
       key (str): Your API key.
@@ -151,10 +113,39 @@ def request(
         raise RuntimeError(f"API status failed: {api_status.status_code}")
 
     # resolve text and ids
-    if isinstance(text, str) and os.path.isfile(text):
-        if verbose:
-            print(f"reading in texts from a file ({perf_counter() - start_time:.4f})")
-        text = pandas.read_csv(text)
+    def readin(
+        paths: list[str],
+        text_cols=text_column,
+        id_cols=id_column,
+        collapse=collapse_lines,
+    ) -> list:
+        sel = []
+        if text_cols is not None:
+            sel.append(text_cols)
+        if id_cols is not None:
+            sel.append(id_cols)
+        text = []
+        if os.path.splitext(paths[0])[1] == ".txt" and len(sel) == 0:
+            for file in paths:
+                with open(file, encoding="utf-8") as texts:
+                    lines = [line.rstrip() for line in texts]
+                    if collapse:
+                        text.append(" ".join(lines))
+                    else:
+                        text += lines
+        else:
+            text = pandas.concat([pandas.read_csv(file, usecols=sel) for file in paths])
+        return text
+
+    if isinstance(text, str):
+        if os.path.isfile(text):
+            if verbose:
+                print(f"reading in texts from a file ({perf_counter() - start_time:.4f})")
+            text = readin([text])
+            text_as_paths = False
+        elif os.path.isdir(text):
+            text = glob(f"{text}/*{file_type}")
+            text_as_paths = True
     if isinstance(text, pandas.DataFrame):
         if id_column is not None:
             if id_column in text:
@@ -170,6 +161,13 @@ def request(
             raise RuntimeError("`text` is a DataFrame, but no `text_column` is specified")
     if isinstance(text, str):
         text = [text]
+    text_is_path = all((len(t) < 500 and os.path.isfile(t) for t in text))
+    if text_as_paths and not text_is_path:
+        raise RuntimeError("`text` treated as a list of files, but not all of the entries exist")
+    if text_is_path and not collapse_lines:
+        text = readin(text)
+        text_is_path = False
+
     id_specified = ids is not None
     if not id_specified:
         ids = numpy.arange(1, len(text) + 1)
@@ -194,11 +192,12 @@ def request(
         numpy.sort(numpy.tile(numpy.arange(n_bundles) + 1, bundle_size))[:n_texts], group_keys=False
     )
     bundles = []
+    getsize = sys.getsizeof if not text_is_path else lambda f: os.stat(f).st_size
     for _, group in groups:
-        if sys.getsizeof(group) > bundle_byte_limit:
+        if getsize(group) > bundle_byte_limit:
             start = current = end = 0
             for txt in group["text"]:
-                size = sys.getsizeof(txt)
+                size = getsize(txt)
                 if size > bundle_byte_limit:
                     raise RuntimeError(
                         "one of your texts is over the bundle size"
@@ -227,10 +226,17 @@ def request(
         "auth": requests.auth.HTTPBasicAuth(key, secret),
         "retries": retry_limit,
         "add": {} if api_args is None else api_args,
+        "are_paths": text_is_path,
+        "cache": request_cache,
     }
-    args["add_hash"] = str(hash(json.dumps(args["add"])))
+    args["add_hash"] = hashlib.md5(
+        json.dumps(
+            args["add"].update({"url": args["url"], "key": key, "secret": secret}),
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
     use_pb = (verbose and progress_bar) or progress_bar
-    if cores > 1:
+    if parallel:
         waiter = Queue()
         queue = Queue()
         manager = Process(
@@ -316,3 +322,96 @@ def request(
         print(f"done ({perf_counter() - start_time:.4f})")
 
     return res
+
+
+def _queue_manager(
+    queue: Queue, waiter: Queue, n_texts: int, n_bundles: int, use_pb=True, verbose=False
+):
+    if use_pb:
+        pb = tqdm(total=n_texts, leave=verbose)
+    res = []
+    for size, chunk in iter(queue.get, None):
+        if size:
+            if use_pb:
+                pb.update(size)
+            res.append(chunk)
+            if len(res) >= n_bundles:
+                break
+    waiter.put(res)
+    return
+
+
+def _process(
+    bundle: pandas.DataFrame,
+    ops: dict,
+    queue: Union[Queue, None] = None,
+    pb: Union[tqdm, None] = None,
+) -> Union[pandas.DataFrame, None]:
+    body = []
+    bundle.insert(0, "text_hash", "")
+    for i, text in enumerate(bundle["text"]):
+        text_hash = hashlib.md5((ops["add_hash"] + text).encode()).hexdigest()
+        bundle.iat[i, 0] = text_hash
+        body.append({"content": text, "request_id": text_hash, **ops["add"]})
+    json_body = json.dumps(body, separators=(",", ":"))
+    bundle_hash = (
+        REQUEST_CACHE + hashlib.md5(json_body.encode()).hexdigest() + ".pickle"
+        if ops["cache"]
+        else ""
+    )
+    res = _request(json_body, ops["url"], ops["auth"], ops["retries"], bundle_hash)
+    if res is not None:
+        res = pandas.json_normalize(res)
+        res.insert(0, "id", bundle["id"].to_list())
+        if queue is not None:
+            queue.put((res.shape[0], res))
+        elif pb is not None:
+            pb.update(bundle.shape[0])
+    return res
+
+
+def _request(
+    body: str, url: str, auth: requests.auth.HTTPBasicAuth, retries: int, cache=""
+) -> Union[dict, None]:
+    if not os.path.isfile(cache):
+        res = requests.post(url, body, auth=auth, timeout=9999)
+        if cache != "":
+            with open(cache, "wb") as response:
+                pickle.dump(res, response)
+    else:
+        with open(cache, "rb") as response:
+            res = pickle.load(response)
+    if res.status_code == 200:
+        res = res.json()["results"]
+        return res
+    if os.path.isfile(cache):
+        os.remove(cache)
+    if retries > 0:
+        cd = re.search("[0-9]+(?:\\.[0-9]+)?", res.json()["message"])
+        sleep(1 if cd is None else float(cd[0]) / 1e3)
+        return _request(body, url, auth, retries - 1)
+    return None
+
+
+def _manage_request_cache():
+    os.makedirs(REQUEST_CACHE, exist_ok=True)
+    try:
+        refreshed = time()
+        log_file = REQUEST_CACHE + "log.txt"
+        if os.path.exists(log_file):
+            with open(log_file, encoding="utf-8") as log:
+                logged = log.readline()
+                if isinstance(logged, list):
+                    logged = logged[0]
+                refreshed = float(logged)
+        else:
+            with open(log_file, "w", encoding="utf-8") as log:
+                log.write(str(time()))
+        if time() - refreshed > 86400:
+            for cached_request in glob(REQUEST_CACHE + "*.pickle"):
+                os.remove(cached_request)
+    except Exception as exc:
+        raise RuntimeWarning("failed to manage request cache") from exc
+
+
+_manage_request_cache()

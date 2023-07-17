@@ -1,6 +1,7 @@
 import os
 from io import StringIO
 from contextlib import redirect_stdout
+from tempfile import TemporaryDirectory
 import pytest
 import receptiviti
 
@@ -10,7 +11,7 @@ receptiviti.readin_env()
 @pytest.mark.skipif(os.getenv("RECEPTIVITI_KEY") is None, reason="no API key")
 class TestRequest:
     def test_single_text(self):
-        res = receptiviti.request("text to score", cores=1)
+        res = receptiviti.request("text to score", parallel=False)
         assert res["summary.word_count"][0] == 3
 
     def test_multi_text(self):
@@ -45,12 +46,25 @@ class TestRequest:
             line[:4] == expected[i] for i, line in enumerate(messages)
         )
 
-    @pytest.mark.skipif(not os.path.isfile("../data.csv"), reason="no test file present")
+    @pytest.mark.skipif(not os.path.isfile("../data.txt"), reason="no txt test file present")
+    def test_from_directory(self):
+        res_single = receptiviti.request("../data.txt")
+        nth_text = 0
+        with TemporaryDirectory() as tempdir:
+            with open("../data.txt", encoding="utf-8") as texts:
+                for text in texts:
+                    nth_text += 1
+                    with open(f"{tempdir}/{nth_text}.txt", "w", encoding="utf-8") as txt:
+                        txt.write(text)
+            res_multi = receptiviti.request(tempdir)
+        assert res_single["summary.word_count"].sum() == res_multi["summary.word_count"].sum()
+
+    @pytest.mark.skipif(not os.path.isfile("../data.csv"), reason="no csv test file present")
     def test_from_file(self):
         res_parallel = receptiviti.request(
             "../data.csv", text_column="texts", id_column="id", bundle_size=20
         )
         res_serial = receptiviti.request(
-            "../data.csv", text_column="texts", id_column="id", bundle_size=20, cores=1
+            "../data.csv", text_column="texts", id_column="id", bundle_size=20, parallel=False
         )
         assert res_parallel["summary.word_count"].sum() == res_serial["summary.word_count"].sum()
