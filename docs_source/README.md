@@ -25,6 +25,16 @@ single = receptiviti.request("a text to score")
 # score multiple texts, and write results to a file
 multi = receptiviti.request(["first text to score", "second text"], "filename.csv")
 
+# score texts in separate files
+## defaults to look for .txt files
+file_results <- receptiviti.request("./path/to/txt_folder")
+
+## could be .csv
+file_results <- receptiviti.request(
+  "./path/to/csv_folder",
+  text_column = "text", file_type = "csv"
+)
+
 # score texts in a single file
 results = receptiviti.request("./path/to/file.csv", text_column = "text")
 ```

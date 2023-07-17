@@ -71,6 +71,7 @@ def request(
       collapse_lines (bool): If `True`, will treat files as containing single texts, and
         collapse multiple lines.
       retry_limit (int): Number of times to retry a failed request.
+      request_cache (bool): If `False`, will not temporarily save raw requests for reuse within a day.
       parallel (bool): If `False`, will always process bundles on a single CPU core.
       verbose (bool): If `True`, will print status messages and preserve the progress bar.
       progress_bar (bool): If `False`, will not display a progress bar.
@@ -221,7 +222,7 @@ def request(
         )
 
     # process bundles
-    args = {
+    opts = {
         "url": f"{url}/{version}/{endpoint}/bulk",
         "auth": requests.auth.HTTPBasicAuth(key, secret),
         "retries": retry_limit,
@@ -229,9 +230,9 @@ def request(
         "are_paths": text_is_path,
         "cache": request_cache,
     }
-    args["add_hash"] = hashlib.md5(
+    opts["add_hash"] = hashlib.md5(
         json.dumps(
-            args["add"].update({"url": args["url"], "key": key, "secret": secret}),
+            {**opts["add"], "url": opts["url"], "key": key, "secret": secret},
             separators=(",", ":"),
         ).encode()
     ).hexdigest()
@@ -243,7 +244,7 @@ def request(
             target=_queue_manager, args=(queue, waiter, n_texts, len(bundles), use_pb, verbose)
         )
         manager.start()
-        procs = [Process(target=_process, args=(b, args, queue)) for b in bundles]
+        procs = [Process(target=_process, args=(b, opts, queue)) for b in bundles]
         for cl in procs:
             cl.start()
         for cl in procs:
@@ -252,7 +253,7 @@ def request(
     else:
         if use_pb:
             pb = tqdm(total=n_texts, leave=verbose)
-        res = [_process(b, args, pb=pb) for b in bundles]
+        res = [_process(b, opts, pb=pb) for b in bundles]
         if use_pb:
             pb.close()
 
@@ -343,23 +344,23 @@ def _queue_manager(
 
 def _process(
     bundle: pandas.DataFrame,
-    ops: dict,
+    opts: dict,
     queue: Union[Queue, None] = None,
     pb: Union[tqdm, None] = None,
 ) -> Union[pandas.DataFrame, None]:
     body = []
     bundle.insert(0, "text_hash", "")
     for i, text in enumerate(bundle["text"]):
-        text_hash = hashlib.md5((ops["add_hash"] + text).encode()).hexdigest()
+        text_hash = hashlib.md5((opts["add_hash"] + text).encode()).hexdigest()
         bundle.iat[i, 0] = text_hash
-        body.append({"content": text, "request_id": text_hash, **ops["add"]})
+        body.append({"content": text, "request_id": text_hash, **opts["add"]})
     json_body = json.dumps(body, separators=(",", ":"))
     bundle_hash = (
         REQUEST_CACHE + hashlib.md5(json_body.encode()).hexdigest() + ".pickle"
-        if ops["cache"]
+        if opts["cache"]
         else ""
     )
-    res = _request(json_body, ops["url"], ops["auth"], ops["retries"], bundle_hash)
+    res = _request(json_body, opts["url"], opts["auth"], opts["retries"], bundle_hash)
     if res is not None:
         res = pandas.json_normalize(res)
         res.insert(0, "id", bundle["id"].to_list())
