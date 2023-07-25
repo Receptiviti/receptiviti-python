@@ -27,10 +27,10 @@ multi = receptiviti.request(["first text to score", "second text"], "filename.cs
 
 # score texts in separate files
 ## defaults to look for .txt files
-file_results <- receptiviti.request("./path/to/txt_folder")
+file_results = receptiviti.request("./path/to/txt_folder")
 
 ## could be .csv
-file_results <- receptiviti.request(
+file_results = receptiviti.request(
   "./path/to/csv_folder",
   text_column = "text", file_type = "csv"
 )

@@ -2,12 +2,16 @@
 
 from typing import Union, List
 import os
+import shutil
 from glob import glob
 import pickle
 from tempfile import gettempdir
 from time import perf_counter, sleep, time
 from multiprocessing import Process, Queue
 from tqdm import tqdm
+import pyarrow
+import pyarrow.dataset as dataset
+import pyarrow.compute as compute
 import sys
 import re
 import hashlib
@@ -19,6 +23,7 @@ import pandas
 from .status import status
 from .readin_env import readin_env
 
+CACHE = gettempdir() + "/receptiviti_cache/"
 REQUEST_CACHE = gettempdir() + "/receptiviti_request_cache/"
 
 
@@ -37,13 +42,18 @@ def request(
     bundle_byte_limit=75e5,
     collapse_lines=False,
     retry_limit=50,
+    clear_cache=False,
     request_cache=True,
     parallel=True,
     verbose=False,
     progress_bar=True,
     overwrite=False,
+    make_request=True,
     text_as_paths=False,
     dotenv: Union[bool, str] = True,
+    cache=os.getenv("RECEPTIVITI_CACHE", ""),
+    cache_overwrite=False,
+    cache_format=os.getenv("RECEPTIVITI_CACHE_FORMAT", "parquet"),
     key=os.getenv("RECEPTIVITI_KEY", ""),
     secret=os.getenv("RECEPTIVITI_SECRET", ""),
     url=os.getenv("RECEPTIVITI_URL", ""),
@@ -71,6 +81,7 @@ def request(
       collapse_lines (bool): If `True`, will treat files as containing single texts, and
         collapse multiple lines.
       retry_limit (int): Number of times to retry a failed request.
+      clear_cache (bool): If `True`, will delete the `cache` before processing.
       request_cache (bool): If `False`, will not temporarily save raw requests for reuse within a day.
       parallel (bool): If `False`, will always process bundles on a single CPU core.
       verbose (bool): If `True`, will print status messages and preserve the progress bar.
@@ -80,6 +91,11 @@ def request(
         Otherwise, this will be detected.
       dotenv (bool | str): Path to a .env file to read environment variables from. By default,
         will for a file in the current directory or `~/Documents`. Passed to `readin_env` as `path`.
+      cache (bool | str): Path to a cache directory, `True` or `""` to use the default directory, or `False`
+        to not use a cache.
+      cache_overwrite (bool): If `True`, will not check the cache for previously cached texts, but will
+        store results in the cache (unlike `cache = False`).
+      cache_format (str): File format of the cache, of available Arrow formats.
       key (str): Your API key.
       secret (str): Your API secret.
       url (str): The URL of the API; defaults to `https://api.receptiviti.com`.
@@ -222,13 +238,22 @@ def request(
         )
 
     # process bundles
+    if isinstance(cache, str):
+        if cache == "":
+            cache = CACHE
+        if clear_cache and os.path.exists(cache):
+            shutil.rmtree(cache, True)
+        os.makedirs(cache, exist_ok=True)
     opts = {
         "url": f"{url}/{version}/{endpoint}/bulk",
         "auth": requests.auth.HTTPBasicAuth(key, secret),
         "retries": retry_limit,
         "add": {} if api_args is None else api_args,
         "are_paths": text_is_path,
-        "cache": request_cache,
+        "request_cache": request_cache,
+        "cache": "" if cache_overwrite or isinstance(cache, bool) and not cache else cache,
+        "cache_format": cache_format,
+        "make_request": make_request,
     }
     opts["add_hash"] = hashlib.md5(
         json.dumps(
@@ -237,7 +262,7 @@ def request(
         ).encode()
     ).hexdigest()
     use_pb = (verbose and progress_bar) or progress_bar
-    if parallel:
+    if parallel and len(bundles) > 1:
         waiter = Queue()
         queue = Queue()
         manager = Process(
@@ -258,46 +283,40 @@ def request(
             pb.close()
 
     # finalize
+    res = pandas.concat(res, ignore_index=True, sort=False)
+    if isinstance(cache, str):
+        _update_cache(res, cache, cache_format, verbose, start_time, [e[0] for e in opts["add"]])
     if verbose:
         print(f"preparing output ({perf_counter() - start_time:.4f})")
-    res = pandas.concat(res, ignore_index=True, sort=False)
-    res.rename(columns={"request_id": "text_hash"}, inplace=True)
-    if return_text or res.shape[0] != n_original:
-        data.set_index("id", inplace=True)
-        res.set_index("id", inplace=True)
-        res.insert(1, "text", data["text"])
-        if res.shape[0] != n_original:
-            data_absent = data.loc[list(set(data.index).difference(res.index))]
-            data_absent = data_absent.loc[data_absent["text"].isin(res["text"])]
-            if data.size:
-                res.reset_index(inplace=True)
-                res.set_index("text", inplace=True)
-                data_dupes = res.loc[data_absent["text"]]
-                data_dupes["id"] = data_absent.index.to_list()
-                res = pandas.concat([res, data_dupes])
-                res.reset_index(inplace=True, drop=True)
-                res.set_index("id", inplace=True)
-            missing_ids = original_ids.difference(res.index)
-            if len(missing_ids):
-                res = pandas.concat(
-                    [res, pandas.DataFrame(index=list(original_ids.difference(res.index)))]
-                )
-            res = res.loc[data.index]
-            res.insert(1, "text", data["text"])
-            if not return_text:
-                res.drop("text", axis=1, inplace=True)
-        res.reset_index(inplace=True, names=["id"])
+    data.set_index("id", inplace=True)
+    res.set_index("id", inplace=True)
+    if res.shape[0] != n_original:
+        res = res.join(data["text"])
+        data_absent = data.loc[list(set(data.index).difference(res.index))]
+        data_absent = data_absent.loc[data_absent["text"].isin(res["text"])]
+        if data.size:
+            res = res.reset_index()
+            res.set_index("text", inplace=True)
+            data_dupes = res.loc[data_absent["text"]]
+            data_dupes["id"] = data_absent.index.to_list()
+            res = pandas.concat([res, data_dupes])
+            res.reset_index(inplace=True, drop=True)
+            res.set_index("id", inplace=True)
+    res = res.join(data["text"], how="outer")
+    if not return_text:
+        res.drop("text", axis=1, inplace=True)
+    res = res.reset_index()
 
     if output is not None:
         if verbose:
             print(f"writing results to file: {output} ({perf_counter() - start_time:.4f})")
         res.to_csv(output, index=False)
 
-    drops = []
+    drops = ["custom", "bin"]
     if not id_specified:
         drops.append("id")
     res.drop(
-        {*drops, "response_id", "language", "version", "error", "custom"}.intersection(res.columns),
+        {*drops}.intersection(res.columns),
         axis="columns",
         inplace=True,
     )
@@ -354,27 +373,77 @@ def _process(
         text_hash = hashlib.md5((opts["add_hash"] + text).encode()).hexdigest()
         bundle.iat[i, 0] = text_hash
         body.append({"content": text, "request_id": text_hash, **opts["add"]})
+    cached = None
+    if opts["cache"] != "" and os.path.isdir(opts["cache"] + "/bin=h"):
+        db = dataset.dataset(
+            opts["cache"],
+            partitioning=dataset.partitioning(
+                pyarrow.schema([("bin", pyarrow.string())]), flavor="hive"
+            ),
+            format=opts["cache_format"],
+        )
+        if "text_hash" in db.schema.names:
+            su = db.filter(compute.field("text_hash").isin(bundle["text_hash"]))
+            if su.count_rows() > 0:
+                cached = su.to_table().to_pandas(split_blocks=True, self_destruct=True)
+    res = None
+    if cached is None or cached.shape[0] < bundle.shape[0]:
+        if cached is None or not cached.shape[0]:
+            res = _prepare_results(body, opts)
+        else:
+            fresh = ~compute.is_in(
+                bundle["text_hash"].to_list(), pyarrow.array(cached["text_hash"])
+            ).to_pandas(split_blocks=True, self_destruct=True)
+            res = _prepare_results([body[i] for i, ck in enumerate(fresh) if ck], opts)
+        if res is not None:
+            if cached is not None:
+                if res.shape[0] != cached.shape[0] or not all(cached.columns.isin(res.columns)):
+                    cached = _prepare_results(
+                        [body[i] for i, ck in enumerate(fresh) if not ck], opts
+                    )
+                res = pandas.concat([res, cached])
+    else:
+        res = cached
+    res = res.merge(bundle.loc[:, ["text_hash", "id"]], on="text_hash")
+    if res is None:
+        raise RuntimeError("failed to retrieve results")
+    if queue is not None:
+        queue.put((res.shape[0], res))
+    elif pb is not None:
+        pb.update(bundle.shape[0])
+    return res
+
+
+def _prepare_results(body: list, opts: list):
     json_body = json.dumps(body, separators=(",", ":"))
     bundle_hash = (
         REQUEST_CACHE + hashlib.md5(json_body.encode()).hexdigest() + ".pickle"
-        if opts["cache"]
+        if opts["request_cache"]
         else ""
     )
-    res = _request(json_body, opts["url"], opts["auth"], opts["retries"], bundle_hash)
+    res = _request(
+        json_body, opts["url"], opts["auth"], opts["retries"], bundle_hash, opts["make_request"]
+    )
     if res is not None:
         res = pandas.json_normalize(res)
-        res.insert(0, "id", bundle["id"].to_list())
-        if queue is not None:
-            queue.put((res.shape[0], res))
-        elif pb is not None:
-            pb.update(bundle.shape[0])
+        res.rename(columns={"request_id": "text_hash"}, inplace=True)
+        res.drop(
+            {"response_id", "language", "version", "error"}.intersection(res.columns),
+            axis="columns",
+            inplace=True,
+        )
+        res.insert(res.shape[1], "bin", ["h" + h[0] for h in res["text_hash"]])
     return res
 
 
 def _request(
-    body: str, url: str, auth: requests.auth.HTTPBasicAuth, retries: int, cache=""
+    body: str, url: str, auth: requests.auth.HTTPBasicAuth, retries: int, cache="", execute=True
 ) -> Union[dict, None]:
     if not os.path.isfile(cache):
+        if not execute:
+            raise RuntimeError(
+                "`make_request` is `False`, but there are texts with no cached results"
+            )
         res = requests.post(url, body, auth=auth, timeout=9999)
         if cache != "":
             with open(cache, "wb") as response:
@@ -390,8 +459,81 @@ def _request(
     if retries > 0:
         cd = re.search("[0-9]+(?:\\.[0-9]+)?", res.json()["message"])
         sleep(1 if cd is None else float(cd[0]) / 1e3)
-        return _request(body, url, auth, retries - 1)
-    return None
+        return _request(body, url, auth, retries - 1, cache)
+    raise RuntimeError(f"request failed, and have no retries: {res.status_code}")
+
+
+def _update_cache(
+    res: pandas.DataFrame,
+    cache: str,
+    cache_format: str,
+    verbose: bool,
+    start_time: float,
+    add_names: list,
+):
+    part = dataset.partitioning(pyarrow.schema([("bin", pyarrow.string())]), flavor="hive")
+    exclude = {"id", *add_names}
+
+    def initialize_cache():
+        initial = res.iloc[[0]].drop(
+            exclude.intersection(res.columns),
+            axis="columns",
+        )
+        initial["text_hash"] = ""
+        initial["bin"] = "h"
+        initial.loc[
+            :,
+            ~initial.columns.isin(
+                ["bin", "text_hash", "summary.word_count", "summary.sentence_count"]
+            ),
+        ] = 0.1
+        dataset.write_dataset(
+            pyarrow.Table.from_pandas(initial), cache, partitioning=part, format=cache_format
+        )
+
+    if not os.path.isdir(cache + "/bin=h"):
+        if verbose:
+            print(f"initializing cache ({perf_counter() - start_time:.4f})")
+        initialize_cache()
+    db = dataset.dataset(cache, partitioning=part, format=cache_format)
+    if any((name not in exclude and name not in db.schema.names for name in res.columns.to_list())):
+        if verbose:
+            print(
+                f"clearing cache since it contains columns not in new results ({perf_counter() - start_time:.4f})"
+            )
+        shutil.rmtree(cache, True)
+        initialize_cache()
+        db = dataset.dataset(cache, partitioning=part, format=cache_format)
+    fresh = res[~res.duplicated(subset=["text_hash"])]
+    su = db.filter(compute.field("text_hash").isin(fresh["text_hash"]))
+    if su.count_rows() > 0:
+        cached = ~compute.is_in(
+            fresh["text_hash"].to_list(),
+            su.scanner(columns=["text_hash"]).to_table()["text_hash"],
+        ).to_pandas(split_blocks=True, self_destruct=True)
+        if any(cached):
+            fresh = fresh[cached.to_list()]
+        else:
+            return
+    n_new = fresh.shape[0]
+    if n_new:
+        if verbose:
+            print(
+                f"adding {n_new} result{'' if n_new == 1 else 's'}",
+                f"to cache ({perf_counter() - start_time:.4f})",
+            )
+        dataset.write_dataset(
+            pyarrow.Table.from_pandas(
+                fresh.drop(
+                    exclude.intersection(fresh.columns),
+                    axis="columns",
+                )
+            ),
+            cache,
+            partitioning=part,
+            format=cache_format,
+            existing_data_behavior="overwrite_or_ignore",
+        )
 
 
 def _manage_request_cache():

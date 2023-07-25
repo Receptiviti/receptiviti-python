@@ -28,6 +28,7 @@ dependencies = [
   "numpy",
   "pandas",
   "tqdm",
+  "pyarrow",
 ]
 
 [project.optional-dependencies]
