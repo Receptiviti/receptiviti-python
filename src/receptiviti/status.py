@@ -46,7 +46,7 @@ def status(
     )
     if re.match("https?://[^.]+[.:][^.]", url, re.I) is None:
         raise TypeError("`url` does not appear to be valid: " + url)
-    res = requests.get(url + "/v1/ping", auth=(key, secret), timeout=9999)
+    res = requests.get(url.lower() + "/v1/ping", auth=(key, secret), timeout=9999)
     content = res.json() if res.text[:1] == "{" else {"message": res.text}
     if verbose:
         print("Status: " + ("OK" if res.status_code == 200 else "ERROR"))
