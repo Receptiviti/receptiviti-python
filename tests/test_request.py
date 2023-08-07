@@ -11,7 +11,7 @@ receptiviti.readin_env()
 @pytest.mark.skipif(os.getenv("RECEPTIVITI_KEY") is None, reason="no API key")
 class TestRequest:
     def test_single_text(self):
-        res = receptiviti.request("text to score", parallel=False, cache=False)
+        res = receptiviti.request("text to score", cache=False)
         assert res["summary.word_count"][0] == 3
 
     def test_multi_text(self):
@@ -50,7 +50,7 @@ class TestRequest:
                 "text to score", frameworks=["summary", "sallee"], verbose=True, cache=False
             )
         messages = out.getvalue().split("\n")
-        expected = ["prep"] * 3 + ["sele", "done", ""]
+        expected = ["prep"] * 3 + ["requ", "done", "prep", "sele", "done", ""]
         assert len(messages) == len(expected) and all(
             line[:4] == expected[i] for i, line in enumerate(messages)
         )
@@ -82,13 +82,14 @@ class TestRequest:
                 id_column="id",
                 bundle_size=20,
                 cache=tempdir,
+                in_memory=False,
             )
             res_serial = receptiviti.request(
                 "../data.csv",
                 text_column="texts",
                 id_column="id",
                 bundle_size=20,
-                parallel=False,
+                cores=1,
                 cache=tempdir,
             )
         assert res_parallel["summary.word_count"].sum() == res_serial["summary.word_count"].sum()
