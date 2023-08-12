@@ -26,12 +26,9 @@ def readin_env(path=".", name=".env", overwrite=False) -> None:
         with open(envpath, encoding="utf-8") as file:
             for line in file:
                 entry = line.split("=", 1)
-                if len(entry) == 2:
-                    if overwrite or os.getenv(entry[0]) is None:
-                        os.environ[entry[0]] = ql.sub("", entry[1])
+                if len(entry) == 2 and (overwrite or os.getenv(entry[0]) is None):
+                    os.environ[entry[0]] = ql.sub("", entry[1])
     elif name != ".Renviron":
         readin_env(path, ".Renviron", overwrite)
-    else:
-        if path != os.path.expanduser("~/Documents"):
-            readin_env("~/Documents", name, overwrite)
-    return
+    elif path != os.path.expanduser("~/Documents"):
+        readin_env("~/Documents", name, overwrite)

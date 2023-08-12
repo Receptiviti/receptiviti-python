@@ -1,6 +1,3 @@
-# SPDX-FileCopyrightText: 2023-present Micah <micah.iserman@gmail.com>
-#
-# SPDX-License-Identifier: MIT
-from .status import status
-from .request import request
-from .readin_env import readin_env
+from receptiviti.readin_env import readin_env
+from receptiviti.request import request
+from receptiviti.status import status

@@ -1,7 +1,9 @@
 import os
-from io import StringIO
 from contextlib import redirect_stdout
+from io import StringIO
+
 import pytest
+
 import receptiviti
 
 receptiviti.readin_env()

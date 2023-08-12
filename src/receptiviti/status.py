@@ -1,10 +1,12 @@
 """Check the status of the API."""
 
-from typing import Union
 import os
 import re
+from typing import Union
+
 import requests
-from .readin_env import readin_env
+
+from receptiviti.readin_env import readin_env
 
 
 def status(
@@ -35,11 +37,11 @@ def status(
     """
     if dotenv is not None and dotenv:
         readin_env("." if isinstance(dotenv, bool) else dotenv)
-    if url == "":
+    if not url:
         url = os.getenv("RECEPTIVITI_URL", "https://api.receptiviti.com")
-    if key == "":
+    if not key:
         key = os.getenv("RECEPTIVITI_KEY", "")
-    if secret == "":
+    if not secret:
         secret = os.getenv("RECEPTIVITI_SECRET", "")
     url = ("https://" if re.match("http", url, re.I) is None else "") + re.sub(
         "/[Vv]\\d(?:/.*)?$|/+$", "", url

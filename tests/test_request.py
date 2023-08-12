@@ -1,8 +1,10 @@
 import os
-from io import StringIO
 from contextlib import redirect_stdout
+from io import StringIO
 from tempfile import TemporaryDirectory
+
 import pytest
+
 import receptiviti
 
 receptiviti.readin_env()
@@ -13,6 +15,12 @@ class TestRequest:
     def test_single_text(self):
         res = receptiviti.request("text to score", cache=False)
         assert res["summary.word_count"][0] == 3
+
+    def test_invalid_text(self):
+        with pytest.raises(RuntimeError, match="one of your texts is over the bundle size limit"):
+            receptiviti.request(" " * int(1e7))
+        with pytest.raises(RuntimeError, match="no valid texts to process"):
+            receptiviti.request("")
 
     def test_multi_text(self):
         res = receptiviti.request(
