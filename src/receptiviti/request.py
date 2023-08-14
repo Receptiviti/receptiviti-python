@@ -152,11 +152,11 @@ def request(
 
     # resolve text and ids
     def readin(
-        paths: list[str],
+        paths: List[str],
         text_cols=text_column,
         id_cols=id_column,
         collapse=collapse_lines,
-    ) -> Union[list[str], pandas.DataFrame]:
+    ) -> Union[List[str], pandas.DataFrame]:
         sel = []
         if text_cols is not None:
             sel.append(text_cols)
@@ -175,7 +175,7 @@ def request(
         else:
             return pandas.concat([pandas.read_csv(file, usecols=sel) for file in paths])
 
-    if isinstance(text, str):
+    if isinstance(text, str) and (text_as_paths or len(text) < 260):
         if os.path.isfile(text):
             if verbose:
                 print(f"reading in texts from a file ({perf_counter() - start_time:.4f})")
@@ -202,7 +202,9 @@ def request(
             raise RuntimeError(msg)
     if isinstance(text, str):
         text = [text]
-    text_is_path = all(isinstance(t, str) and len(t) < 500 and os.path.isfile(t) for t in text)
+    text_is_path = all(
+        isinstance(t, str) and (text_as_paths or len(t) < 260) and os.path.isfile(t) for t in text
+    )
     if text_as_paths and not text_is_path:
         msg = "`text` treated as a list of files, but not all of the entries exist"
         raise RuntimeError(msg)
@@ -305,7 +307,7 @@ def request(
                 print(f"writing to scratch cache ({perf_counter() - start_time:.4f})")
 
             def write_to_scratch(i: int, bundle: pandas.DataFrame):
-                temp = f"{scratch_cache}/{i}.pickle"
+                temp = f"{scratch_cache}/{i}.json"
                 with open(temp, "wb") as scratch:
                     pickle.dump(bundle, scratch)
                 return temp
@@ -420,7 +422,7 @@ def _queue_manager(
 ):
     if use_pb:
         pb = tqdm(total=n_texts, leave=verbose)
-    res: list[pandas.DataFrame] = []
+    res: List[pandas.DataFrame] = []
     for size, chunk in iter(queue.get, None):
         if isinstance(chunk, pandas.DataFrame):
             if use_pb:
@@ -439,7 +441,7 @@ def _process(
     queue: Union["Queue[tuple[int, Union[pandas.DataFrame, None]]]", None] = None,
     pb: Union[tqdm, None] = None,
 ) -> pandas.DataFrame:
-    reses: list[pandas.DataFrame] = []
+    reses: List[pandas.DataFrame] = []
     for bundle in bundles:
         if isinstance(bundle, str):
             with open(bundle, "rb") as scratch:
@@ -455,7 +457,7 @@ def _process(
             db = dataset.dataset(
                 opts["cache"],
                 partitioning=dataset.partitioning(
-                    pyarrow.schema([("bin", pyarrow.string())]), flavor="hive"
+                    pyarrow.schema([pyarrow.field("bin", pyarrow.string())]), flavor="hive"
                 ),
                 format=opts["cache_format"],
             )
@@ -496,7 +498,7 @@ def _process(
 def _prepare_results(body: list, opts: dict):
     json_body = json.dumps(body, separators=(",", ":"))
     bundle_hash = (
-        REQUEST_CACHE + hashlib.md5(json_body.encode()).hexdigest() + ".pickle"
+        REQUEST_CACHE + hashlib.md5(json_body.encode()).hexdigest() + ".json"
         if opts["request_cache"]
         else ""
     )
@@ -535,12 +537,13 @@ def _request(
         if not execute:
             return "`make_request` is `False`, but there are texts with no cached results"
         res = requests.post(url, body, auth=auth, timeout=9999)
-        if cache:
-            with open(cache, "wb") as response:
-                pickle.dump(res, response)
+        if cache and res.status_code == 200:
+            with open(cache, "w", encoding="utf-8") as response:
+                json.dump(res.json(), response)
     else:
-        with open(cache, "rb") as response:
-            res = pickle.load(response)
+        with open(cache, encoding="utf-8") as response:
+            data = json.load(response)
+            return data["results"] if "results" in data else data
     if res.status_code == 200:
         data = dict(res.json())
         return data["results"] if "results" in data else data
@@ -566,7 +569,9 @@ def _update_cache(
     start_time: float,
     add_names: list,
 ):
-    part = dataset.partitioning(pyarrow.schema([("bin", pyarrow.string())]), flavor="hive")
+    part: pyarrow.Partitioning = dataset.partitioning(
+        pyarrow.schema([pyarrow.field("bin", pyarrow.string())]), flavor="hive"
+    )
     exclude = {"id", *add_names}
 
     def initialize_cache():
@@ -650,7 +655,7 @@ def _manage_request_cache():
             with open(log_file, "w", encoding="utf-8") as log:
                 log.write(str(time()))
         if time() - refreshed > 86400:
-            for cached_request in glob(REQUEST_CACHE + "*.pickle"):
+            for cached_request in glob(REQUEST_CACHE + "*.json"):
                 os.remove(cached_request)
     except Exception as exc:
         msg = "failed to manage request cache"

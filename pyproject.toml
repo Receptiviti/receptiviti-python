@@ -88,7 +88,7 @@ python = ["3.7", "3.8", "3.9", "3.10", "3.11"]
 detached = true
 dependencies = [
   "pytest",
-  "pyarrow",
+  "pyarrow-stubs",
   "black>=23.1.0",
   "mypy>=1.0.0",
   "ruff>=0.0.243",
@@ -152,11 +152,26 @@ ignore = [
   "S105", "S106", "S107",
   # Ignore complexity
   "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
+  # Allow base import names
+  "ICN001",
+  # Allow defaults
+  "B008", "FBT001", "FBT002",
+  # Allow constants
+  "PLR2004",
+  # Allow print
+  "T201",
+  # Allow loop overwrite
+  "PLW2901",
+  # Allow MD5s
+  "S324",
+  # Allow pickle
+  "S301"
 ]
 unfixable = [
   # Don't touch unused imports
   "F401",
 ]
+exclude = ["src/receptiviti/__init__.py"]
 
 [tool.ruff.isort]
 known-first-party = ["receptiviti"]
@@ -173,6 +188,7 @@ source_pkgs = ["receptiviti", "tests"]
 parallel = true
 omit = [
   "*/__about__.py",
+  "*/__init__.py",
 ]
 relative_files = true
 
