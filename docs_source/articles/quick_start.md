@@ -159,7 +159,7 @@ results = receptiviti.request(
 
 ### Returned Results
 
-By default, results are returned as a `data.frame`, with a row for each
+Results are returned as a `DataFrame`, with a row for each
 text, and columns for each framework variable:
 
 ```{code-cell} ipython3
@@ -174,7 +174,7 @@ The entered text can also be included with the `return_text` argument:
 
 ```{code-cell} ipython3
 results = receptiviti.request("texts to score", return_text=True)
-results.iloc[:, :3]
+results[["text_hash", "text"]]
 ```
 
 You can also select frameworks before they are all returned:
@@ -219,7 +219,9 @@ other data:
 ```{code-cell} ipython3
 results = receptiviti.request(["text a", "text b"], ids=["a", "b"])
 results.iloc[:, :4]
+```
 
+```{code-cell} ipython3
 # merge with a new dataset
 data = pandas.DataFrame({
   "id": ["a1", "b1", "a2", "b2"],
@@ -257,15 +259,13 @@ If you want to make sure no texts are sent to the API, you can use `make_request
 This will use the primary and request cache, but will fail if any texts are not found there.
 
 If a call fails before results can be written to the cache or returned, all received responses will
-still be in the request cache, but those will be deleted after a day. If you want to preserve
-these but need to restart R, you can move the cached responses out of , then replace
-them after restarting.
+still be in the request cache, but those will be deleted after a day.
 
 ## Handling Big Data
 
 The `receptiviti` function will handle splitting texts into bundles, so the limit on how many texts
 you can process at once will come down to your system's amount of random access memory (RAM).
-Several thousand texts should be fine, but getting into millions of texts, you may not be able
+Several thousands of texts should be fine, but getting into millions of texts, you may not be able
 to have all of the results loaded at once. To get around this, you can fully process subsets
 of your texts.
 
