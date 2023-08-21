@@ -76,10 +76,15 @@ dependencies = [
   "mkdocs",
   "mkdocstrings[python]",
   "mkdocs-material",
+  "jupytext",
+  "ipykernel",
+  "mkdocs-jupyter",
 ]
 [tool.hatch.envs.docs.scripts]
+article-setup = "jupytext --set-kernel - docs_source/articles/quick_start.md"
+article = "jupytext --to notebook --execute docs_source/articles/quick_start.md"
 build = "mkdocs build --clean --strict"
-serve = "mkdocs serve --dev-addr localhost:8000"
+serve = "mkdocs serve --dev-addr localhost:8000 --clean"
 
 [[tool.hatch.envs.all.matrix]]
 python = ["3.7", "3.8", "3.9", "3.10", "3.11"]

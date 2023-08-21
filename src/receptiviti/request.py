@@ -66,50 +66,99 @@ def request(
     Send texts to be scored by the API.
 
     Args:
-      text (str | list | pandas.DataFrame): Text to be processed.
-      output (str): Path to a file to write results to.
-      ids (str | list): Vector of IDs for each `text`, or a column name in `text` containing IDs.
-      text_column (str): Column name in `text` containing text.
-      id_column (str): Column name in `text` containing IDs.
-      file_type (str): Extension of the file(s) to be read in from a directory (`txt` or `csv`).
-      return_text (bool): If `True`, will include a `text` column in the output with the
-        original text.
-      api_args (dict): Additional arguments to include in the request.
-      frameworks (str | list): One or more names of frameworks to return.
-      framework_prefix (bool): If `False`, will drop framework prefix from column names.
-        If one framework is selected, will default to `False`.
-      bundle_size (int): Maximum number of texts per bundle.
-      bundle_byte_limit (float): Maximum byte size of each bundle.
-      collapse_lines (bool): If `True`, will treat files as containing single texts, and
-        collapse multiple lines.
-      retry_limit (int): Number of times to retry a failed request.
-      clear_cache (bool): If `True`, will delete the `cache` before processing.
-      request_cache (bool): If `False`, will not temporarily save raw requests for reuse
-        within a day.
-      cores (int): Number of CPU cores to use when processing multiple bundles.
-      in_memory (bool | None): If `False`, will write bundles to disc, to be loaded when processed.
-        Defaults to `True` when processing in parallel.
-      verbose (bool): If `True`, will print status messages and preserve the progress bar.
-      progress_bar (bool): If `False`, will not display a progress bar.
-      overwrite (bool): If `True`, will overwrite an existing `output` file.
-      text_as_paths (bool): If `True`, will explicitly mark `text` as a list of file paths.
-        Otherwise, this will be detected.
-      dotenv (bool | str): Path to a .env file to read environment variables from. By default,
-        will for a file in the current directory or `~/Documents`.
-        Passed to `readin_env` as `path`.
-      cache (bool | str): Path to a cache directory, `True` or `""` to use the default directory,
-        or `False` to not use a cache.
-      cache_overwrite (bool): If `True`, will not check the cache for previously cached texts,
-        but will store results in the cache (unlike `cache = False`).
-      cache_format (str): File format of the cache, of available Arrow formats.
-      key (str): Your API key.
-      secret (str): Your API secret.
-      url (str): The URL of the API; defaults to `https://api.receptiviti.com`.
-      version (str): Version of the API; defaults to `v1`.
-      endpoint (str): Endpoint of the API; defaults to `framework`.
+        text (str | list | pandas.DataFrame): Text to be processed.
+        output (str): Path to a file to write results to.
+        ids (str | list): Vector of IDs for each `text`, or a column name in `text` containing IDs.
+        text_column (str): Column name in `text` containing text.
+        id_column (str): Column name in `text` containing IDs.
+        file_type (str): Extension of the file(s) to be read in from a directory (`txt` or `csv`).
+        return_text (bool): If `True`, will include a `text` column in the output with the
+            original text.
+        api_args (dict): Additional arguments to include in the request.
+        frameworks (str | list): One or more names of frameworks to return.
+        framework_prefix (bool): If `False`, will drop framework prefix from column names.
+            If one framework is selected, will default to `False`.
+        bundle_size (int): Maximum number of texts per bundle.
+        bundle_byte_limit (float): Maximum byte size of each bundle.
+        collapse_lines (bool): If `True`, will treat files as containing single texts, and
+            collapse multiple lines.
+        retry_limit (int): Number of times to retry a failed request.
+        clear_cache (bool): If `True`, will delete the `cache` before processing.
+        request_cache (bool): If `False`, will not temporarily save raw requests for reuse
+            within a day.
+        cores (int): Number of CPU cores to use when processing multiple bundles.
+        in_memory (bool | None): If `False`, will write bundles to disc, to be loaded when
+            processed. Defaults to `True` when processing in parallel.
+        verbose (bool): If `True`, will print status messages and preserve the progress bar.
+        progress_bar (bool): If `False`, will not display a progress bar.
+        overwrite (bool): If `True`, will overwrite an existing `output` file.
+        text_as_paths (bool): If `True`, will explicitly mark `text` as a list of file paths.
+            Otherwise, this will be detected.
+        dotenv (bool | str): Path to a .env file to read environment variables from. By default,
+            will for a file in the current directory or `~/Documents`.
+            Passed to `readin_env` as `path`.
+        cache (bool | str): Path to a cache directory, `True` or `""` to use the default directory,
+            or `False` to not use a cache.
+        cache_overwrite (bool): If `True`, will not check the cache for previously cached texts,
+            but will store results in the cache (unlike `cache = False`).
+        cache_format (str): File format of the cache, of available Arrow formats.
+        key (str): Your API key.
+        secret (str): Your API secret.
+        url (str): The URL of the API; defaults to `https://api.receptiviti.com`.
+        version (str): Version of the API; defaults to `v1`.
+        endpoint (str): Endpoint of the API; defaults to fefe `framework`.
 
     Returns:
-      Scores associated with each input text.
+        Scores associated with each input text.
+
+    Cache:
+        By default, results for unique texts are saved in an Arrow database in the cache location
+        (`os.getenv("RECEPTIVITI_CACHE")`), and are retrieved with subsequent requests. This ensures
+        that the exact same texts are not re-sent to the API. This does, however, add some
+        processing time and disc space usage.
+
+        If a cache location is not specified, a default directory (`receptiviti_cache`) will be
+        looked for in the system's temporary directory (`tempfile.gettempdir()`).
+
+        The `cache_format` arguments (or the `RECEPTIVITI_CACHE_FORMAT` environment variable) can be
+        used to adjust the format of the cache.
+
+        You can use the cache independently with
+        `pyarrow.dataset.dataset(os.getenv("RECEPTIVITI_CACHE"))`.
+
+        You can set the `cache` argument to `False` to prevent the cache from being used, which
+        might make sense if you don't expect to need to reprocess texts.
+
+        You can also set the `clear_cache` argument to `True` to clear the cache before it is used
+        again, which may be useful if the cache has gotten big, or you know new results will be
+        returned.
+
+        Even if a cached result exists, it will be reprocessed if it does not have all of the
+        variables of new results, but this depends on there being at least 1 uncached result. If,
+        for instance, you add a framework to your account and want to reprocess a previously
+        processed set of texts, you would need to first clear the cache.
+
+        Either way, duplicated texts within the same call will only be sent once.
+
+        The `request_cache` argument controls a more temporary cache of each bundle request. This
+        is cleared after a day. You might want to set this to `False` if a new framework becomes
+        available on your account and you want to process a set of text you re-processed recently.
+
+        Another temporary cache is made when `in_memory` is `False`, which is the default when
+        processing in parallel (when there is more than 1 bundle and `cores` is over 1). This is a
+        temporary directory that contains a file for each unique bundle, which is read in as needed
+        by the parallel workers.
+
+    Parallelization:
+        `text`s are split into bundles based on the `bundle_size` argument. Each bundle represents
+        a single request to the API, which is why they are limited to 1000 texts and a total size
+        of 10 MB. When there is more than one bundle and `cores` is greater than 1, bundles are
+        processed by multiple cores.
+
+        If you have texts spread across multiple files, they can be most efficiently processed in
+        parallel if each file contains a single text (potentially collapsed from multiple lines).
+        If files contain multiple texts (i.e., `collapse_lines=False`), then texts need to be
+        read in before bundling in order to ensure bundles are under the length limit.
     """
     if output is not None and os.path.isfile(output) and not overwrite:
         msg = "`output` file already exists; use `overwrite=True` to overwrite it"

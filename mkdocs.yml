@@ -33,6 +33,14 @@ plugins:
         python:
           options:
             docstring_style: google
+  - mkdocs-jupyter:
+      remove_tag_config:
+        remove_input_tags:
+          - hide_code
+        remove_all_outputs_tags:
+          - hide_output
+        remove_cell_tags:
+          - hide_cell
 docs_dir: 'docs_source'
 site_dir: 'docs'
 markdown_extensions:
@@ -45,8 +53,11 @@ markdown_extensions:
   - pymdownx.superfences
 nav:
   - Home: README.md
+  - Get Started: articles/quick_start.ipynb
   - References:
       - functions/request.md
       - functions/status.md
       - functions/readin_env.md
-  - 'Test Coverage': coverage/index.html
+  - Test Coverage: coverage/index.html
+exclude_docs: |
+  articles/quick_start.md

@@ -3,6 +3,5 @@
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true
   },
-  "python.testing.pytestEnabled": true,
-  "python.formatting.provider": "none"
+  "python.testing.pytestEnabled": true
 }
