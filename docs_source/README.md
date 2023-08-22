@@ -1,10 +1,10 @@
 # Home
 
-A Python package to process text with the [Receptiviti](https://www.receptiviti.com) API.
+A Python package to process text with the <a href="https://www.receptiviti.com" rel="noreferrer" target="_blank">Receptiviti</a> API.
 
 ## Installation
 
-If needed, download Python from [python.org](https://www.python.org/downloads), then install the package with pip:
+If needed, download Python from <a href="https://www.python.org/downloads" rel="noreferrer" target="_blank">python.org</a>, then install the package with pip:
 
 ```sh
 pip install git+https://github.com/miserman/receptiviti-py.git
@@ -41,7 +41,7 @@ results = receptiviti.request("./path/to/file.csv", text_column = "text")
 
 ## API Access
 
-To access the API, you will need to load your key and secret, as found on your [dashboard](https://dashboard.receptiviti.com).
+To access the API, you will need to load your key and secret, as found on your <a href="https://dashboard.receptiviti.com" rel="noreferrer" target="_blank">dashboard</a>.
 
 You can enter these as arguments in each function call, but by default they will be looked for in these environment variables:
 

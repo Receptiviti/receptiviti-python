@@ -4,6 +4,7 @@ from io import StringIO
 from tempfile import TemporaryDirectory
 
 import pytest
+import pandas
 
 import receptiviti
 
@@ -27,7 +28,7 @@ class TestRequest:
             ["text to score", float("nan"), "another text", "another text"], cache=False
         )
         assert str(res["summary.word_count"][1]) == "nan"
-        assert res["summary.word_count"].iloc[[0, 2, 3]].to_list() == [3, 2, 2]
+        assert res["summary.word_count"].iloc[pandas.Index([0, 2, 3])].to_list() == [3, 2, 2]
 
     def test_framework_selection(self):
         res = receptiviti.request(
@@ -73,13 +74,18 @@ class TestRequest:
         with TemporaryDirectory() as tempdir:
             res_single = receptiviti.request("../data.txt", cache=False)
             nth_text = 0
+            files = []
             with open("../data.txt", encoding="utf-8") as texts:
                 for text in texts:
                     nth_text += 1
-                    with open(f"{tempdir}/{nth_text}.txt", "w", encoding="utf-8") as txt:
+                    file = f"{tempdir}/{nth_text}.txt"
+                    files.append(file)
+                    with open(file, "w", encoding="utf-8") as txt:
                         txt.write(text)
             res_multi = receptiviti.request(tempdir, cache=False)
+            res_multi_direct = receptiviti.request(files, cache=False)
         assert res_single["summary.word_count"].sum() == res_multi["summary.word_count"].sum()
+        assert res_multi["summary.word_count"].sum() == res_multi_direct["summary.word_count"].sum()
 
     @pytest.mark.skipif(not os.path.isfile("../data.csv"), reason="no csv test file present")
     def test_from_file(self):

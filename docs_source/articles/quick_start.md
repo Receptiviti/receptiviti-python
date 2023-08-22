@@ -8,9 +8,9 @@ jupytext:
     format_version: 0.13
     jupytext_version: 1.15.0
 kernelspec:
-  display_name: default
+  display_name: python 3
   language: python
-  name: default
+  name: python3
 ---
 
 ```{code-cell} ipython3
@@ -27,7 +27,7 @@ os.environ["RECEPTIVITI_SECRET"]=os.environ["RECEPTIVITI_SECRET_TEST"]
 
 ## Install and Load
 
-First, download and install Python from [python.org](https://python.org/downloads).
+First, download and install Python from <a href="https://python.org/downloads" rel="noreferrer" target="_blank">python.org</a>.
 
 Then, install the package:
 
@@ -43,7 +43,7 @@ import receptiviti
 
 ## Set Up API Credentials
 
-You can find your API key and secret on your [dashboard](https://dashboard.receptiviti.com).
+You can find your API key and secret on your <a href="https://dashboard.receptiviti.com" rel="noreferrer" target="_blank">dashboard</a>.
 
 You can set these credentials up in Python permanently or temporarily:
 

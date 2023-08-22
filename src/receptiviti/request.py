@@ -259,6 +259,10 @@ def request(
         raise RuntimeError(msg)
     if text_is_path and not collapse_lines:
         text = readin(text)
+        if isinstance(text, pandas.DataFrame):
+            if id_column is not None and id_column in text:
+                ids = text[id_column].to_list()
+            text = text[text_column].to_list()
         text_is_path = False
 
     id_specified = ids is not None

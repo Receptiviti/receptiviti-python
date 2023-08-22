@@ -2,27 +2,27 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://miserman.github.io/receptiviti-py/</loc>
-         <lastmod>2023-08-21</lastmod>
+         <lastmod>2023-08-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://miserman.github.io/receptiviti-py/articles/quick_start/</loc>
-         <lastmod>2023-08-21</lastmod>
+         <lastmod>2023-08-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://miserman.github.io/receptiviti-py/functions/readin_env/</loc>
-         <lastmod>2023-08-21</lastmod>
+         <lastmod>2023-08-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://miserman.github.io/receptiviti-py/functions/request/</loc>
-         <lastmod>2023-08-21</lastmod>
+         <lastmod>2023-08-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://miserman.github.io/receptiviti-py/functions/status/</loc>
-         <lastmod>2023-08-21</lastmod>
+         <lastmod>2023-08-22</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
