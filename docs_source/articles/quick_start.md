@@ -32,7 +32,7 @@ First, download and install Python from <a href="https://python.org/downloads" r
 Then, install the package:
 
 ```sh
-pip install git+https://github.com/miserman/receptiviti-py.git
+pip install git+https://github.com/receptiviti/receptiviti-python.git
 ```
 
 Each time you start a Python session, load the package:
@@ -119,10 +119,12 @@ You can enter paths to files containing separate texts in each line:
 
 ```{code-cell} ipython3 tags=["hide_output"]
 # single
-results = receptiviti.request("../files/file.txt")
+results = receptiviti.request("files/file.txt")
 
 # multiple
-results = receptiviti.request(["../files/file1.txt", "../files/file2.txt"])
+results = receptiviti.request(
+  files = ["files/file1.txt", "files/file2.txt"]
+)
 ```
 
 Or to a comma delimited file with a column containing text.
@@ -130,11 +132,11 @@ Here, the `text_column` argument specifies which column contains text:
 
 ```{code-cell} ipython3 tags=["hide_output"]
 # single
-results = receptiviti.request("../files/file.csv", text_column="text")
+results = receptiviti.request("files/file.csv", text_column="text")
 
 # multiple
 results = receptiviti.request(
-  ["../files/file1.csv", "../files/file2.csv"],
+  files = ["files/file1.csv", "files/file2.csv"],
   text_column="text"
 )
 ```
@@ -142,7 +144,7 @@ results = receptiviti.request(
 Or you can point to a directory containing text files:
 
 ```{code-cell} ipython3 tags=["hide_output"]
-results = receptiviti.request("../files")
+results = receptiviti.request(directory = "files")
 ```
 
 By default `.txt` files will be looked for, but you can specify
@@ -150,7 +152,7 @@ By default `.txt` files will be looked for, but you can specify
 
 ```{code-cell} ipython3 tags=["hide_output"]
 results = receptiviti.request(
-  "../files",
+  directory = "files",
   text_column="text", file_type="csv"
 )
 ```

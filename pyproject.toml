@@ -40,9 +40,9 @@ dev = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/receptiviti/receptiviti-py#readme"
-Issues = "https://github.com/receptiviti/receptiviti-py/issues"
-Source = "https://github.com/receptiviti/receptiviti-py"
+Documentation = "https://github.com/receptiviti/receptiviti-python#readme"
+Issues = "https://github.com/receptiviti/receptiviti-python/issues"
+Source = "https://github.com/receptiviti/receptiviti-python"
 
 [tool.hatch.version]
 path = "src/receptiviti/__about__.py"
@@ -199,7 +199,7 @@ relative_files = true
 
 [tool.coverage.paths]
 receptiviti = ["src/receptiviti", "*/receptiviti"]
-tests = ["tests", "*/receptiviti-py/tests"]
+tests = ["tests", "*/receptiviti-python/tests"]
 
 [tool.coverage.report]
 exclude_lines = [

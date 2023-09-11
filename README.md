@@ -7,7 +7,7 @@ A Python package to process text with the [Receptiviti](https://www.receptiviti.
 If needed, download Python from [python.org](https://www.python.org/downloads), then install the package with pip:
 
 ```sh
-pip install git+https://github.com/miserman/receptiviti-py.git
+pip install git+https://github.com/receptiviti/receptiviti-python.git
 ```
 
 And load the package in a Python console:
@@ -27,11 +27,11 @@ multi = receptiviti.request(["first text to score", "second text"], "filename.cs
 
 # score texts in separate files
 ## defaults to look for .txt files
-file_results = receptiviti.request("./path/to/txt_folder")
+file_results = receptiviti.request(directory = "./path/to/txt_folder")
 
 ## could be .csv
 file_results = receptiviti.request(
-  "./path/to/csv_folder",
+  directory = "./path/to/csv_folder",
   text_column = "text", file_type = "csv"
 )
 

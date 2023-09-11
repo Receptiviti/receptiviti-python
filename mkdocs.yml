@@ -1,5 +1,5 @@
 site_name: Receptiviti
-site_url: https://miserman.github.io/receptiviti-py
+site_url: https://receptiviti.github.io/receptiviti-python
 theme:
   name: material
   logo: assets/logo.png
@@ -24,7 +24,7 @@ theme:
     - content.code.copy
 extra_css:
   - stylesheets/extra.css
-repo_url: https://github.com/miserman/receptiviti-py
+repo_url: https://github.com/receptiviti/receptiviti-python
 plugins:
   - search
   - autorefs
