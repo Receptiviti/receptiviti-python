@@ -29,11 +29,13 @@ REQUEST_CACHE = gettempdir() + "/receptiviti_request_cache/"
 
 
 def request(
-    text: Union[str, list, pandas.DataFrame],
+    text: Union[str, List[str], pandas.DataFrame, None] = None,
     output: Union[str, None] = None,
     ids: Union[str, List[Union[str, int]], None] = None,
     text_column: Union[str, None] = None,
     id_column: Union[str, None] = None,
+    files: Union[List[str], None] = None,
+    directory: Union[str, None] = None,
     file_type: str = "txt",
     return_text=False,
     api_args: Union[dict, None] = None,
@@ -66,11 +68,19 @@ def request(
     Send texts to be scored by the API.
 
     Args:
-        text (str | list | pandas.DataFrame): Text to be processed.
+        text (str | list[str] | pandas.DataFrame): Text to be processed, as a string or vector of
+            strings containing the text itself, or the path to a file from which to read in text.
+            If a DataFrame, `text_column` is used to extract such a vector. A string may also
+            represent a directory in which to search for files. To best ensure paths are not
+            treated as texts, either set `text_as_path` to `True`, or use `directory` to enter
+            a directory path, or `files` to enter a vector of file paths.
         output (str): Path to a file to write results to.
-        ids (str | list): Vector of IDs for each `text`, or a column name in `text` containing IDs.
+        ids (str | list[str | int]): Vector of IDs for each `text`, or a column name in `text`
+            containing IDs.
         text_column (str): Column name in `text` containing text.
         id_column (str): Column name in `text` containing IDs.
+        files (list[str]): Vector of file paths, as alternate entry to `text`.
+        directory (str): A directory path to search for files in, as alternate entry to `text`.
         file_type (str): Extension of the file(s) to be read in from a directory (`txt` or `csv`).
         return_text (bool): If `True`, will include a `text` column in the output with the
             original text.
@@ -206,29 +216,70 @@ def request(
         id_cols=id_column,
         collapse=collapse_lines,
     ) -> Union[List[str], pandas.DataFrame]:
+        text = []
+        ids = []
         sel = []
         if text_cols is not None:
             sel.append(text_cols)
         if id_cols is not None:
             sel.append(id_cols)
         if os.path.splitext(paths[0])[1] == ".txt" and not sel:
-            text = []
-            for file in paths:
-                with open(file, encoding="utf-8") as texts:
-                    lines = [line.rstrip() for line in texts]
-                    if collapse:
-                        text.append(" ".join(lines))
-                    else:
+            if collapse:
+                for file in paths:
+                    with open(file, encoding="utf-8") as texts:
+                        text.append(" ".join([line.rstrip() for line in texts]))
+            else:
+                for file in paths:
+                    with open(file, encoding="utf-8") as texts:
+                        lines = [line.rstrip() for line in texts]
                         text += lines
-            return text
+                        ids += (
+                            [file]
+                            if len(lines) == 1
+                            else [file + str(i) for i in range(len(lines))]
+                        )
+                return pandas.DataFrame({"text": text, "ids": ids})
         else:
-            return pandas.concat([pandas.read_csv(file, usecols=sel) for file in paths])
+            if collapse:
+                for file in paths:
+                    temp = pandas.read_csv(file, usecols=sel)
+                    text.append(" ".join(temp[text_cols]))
+            else:
+                for file in paths:
+                    temp = pandas.read_csv(file, usecols=sel)
+                    if not text_cols in temp:
+                        msg = f"`text_column` ({text_cols}) was not found in all files"
+                        raise IndexError(msg)
+                    text += temp[text_cols].to_list()
+                    ids += (
+                        temp[id_cols].to_list()
+                        if id_cols is not None
+                        else [file]
+                        if len(temp) == 1
+                        else [file + str(i) for i in range(len(temp))]
+                    )
+                return pandas.DataFrame({"text": text, "ids": ids})
+        return text
 
-    if isinstance(text, str) and (text_as_paths or len(text) < 260):
-        if os.path.isfile(text):
+    text_as_dir = False
+    if text is None:
+        if directory is not None:
+            text = directory
+            text_as_dir = True
+        elif files is not None:
+            text_as_paths = True
+            text = files
+        else:
+            msg = "enter text as the first argument, or use the files or directory arguments"
+            raise RuntimeError(msg)
+    if isinstance(text, str) and (text_as_dir or text_as_paths or len(text) < 260):
+        if not text_as_dir and os.path.isfile(text):
             if verbose:
                 print(f"reading in texts from a file ({perf_counter() - start_time:.4f})")
             text = readin([text])
+            if isinstance(text, pandas.DataFrame):
+                id_column = "ids"
+                text_column = "text"
             text_as_paths = False
         elif os.path.isdir(text):
             text = glob(f"{text}/*{file_type}")
@@ -258,12 +309,19 @@ def request(
         msg = "`text` treated as a list of files, but not all of the entries exist"
         raise RuntimeError(msg)
     if text_is_path and not collapse_lines:
+        ids = text
         text = readin(text)
         if isinstance(text, pandas.DataFrame):
-            if id_column is not None and id_column in text:
+            if id_column is None:
+                ids = text["ids"]
+            elif id_column in text:
                 ids = text[id_column].to_list()
+            if text_column is None:
+                text_column = "text"
             text = text[text_column].to_list()
         text_is_path = False
+    if ids is None and text_is_path:
+        ids = text
 
     id_specified = ids is not None
     if ids is None:

@@ -69,23 +69,48 @@ class TestRequest:
             receptiviti.request("a text to score", cache=tempdir, clear_cache=True)
             assert os.path.isdir(tempdir + "/bin=h")
 
+    def test_id_assignment(self):
+        text = ["text to score", "another text"]
+        with TemporaryDirectory() as tempdir:
+            txt_file = f"{tempdir}/text.txt"
+            with open(txt_file, "w", encoding="utf-8") as txt:
+                txt.write("\n".join(text))
+            csv_file = f"{tempdir}/text.csv"
+            pandas.DataFrame({"text": text}).to_csv(csv_file)
+            assert receptiviti.request(txt_file, cache=False)["id"].to_list() == [
+                txt_file + "0",
+                txt_file + "1",
+            ]
+            assert receptiviti.request(csv_file, text_column="text", cache=False)[
+                "id"
+            ].to_list() == [
+                csv_file + "0",
+                csv_file + "1",
+            ]
+
     @pytest.mark.skipif(not os.path.isfile("../data.txt"), reason="no txt test file present")
     def test_from_directory(self):
         with TemporaryDirectory() as tempdir:
             res_single = receptiviti.request("../data.txt", cache=False)
             nth_text = 0
-            files = []
+            txt_files = []
+            csv_files = []
             with open("../data.txt", encoding="utf-8") as texts:
                 for text in texts:
                     nth_text += 1
-                    file = f"{tempdir}/{nth_text}.txt"
-                    files.append(file)
-                    with open(file, "w", encoding="utf-8") as txt:
+                    txt_file = f"{tempdir}/{nth_text}.txt"
+                    txt_files.append(txt_file)
+                    with open(txt_file, "w", encoding="utf-8") as txt:
                         txt.write(text)
+                    csv_file = f"{tempdir}/{nth_text}.csv"
+                    csv_files.append(csv_file)
+                    pandas.DataFrame({"text": [text]}).to_csv(csv_file)
             res_multi = receptiviti.request(tempdir, cache=False)
-            res_multi_direct = receptiviti.request(files, cache=False)
+            res_multi_txt = receptiviti.request(txt_files, cache=False)
+            res_multi_csv = receptiviti.request(csv_files, text_column="text", cache=False)
         assert res_single["summary.word_count"].sum() == res_multi["summary.word_count"].sum()
-        assert res_multi["summary.word_count"].sum() == res_multi_direct["summary.word_count"].sum()
+        assert res_multi["summary.word_count"].sum() == res_multi_txt["summary.word_count"].sum()
+        assert res_multi["summary.word_count"].sum() == res_multi_csv["summary.word_count"].sum()
 
     @pytest.mark.skipif(not os.path.isfile("../data.csv"), reason="no csv test file present")
     def test_from_file(self):
