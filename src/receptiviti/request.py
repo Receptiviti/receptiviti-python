@@ -107,8 +107,7 @@ def request(
         dotenv (bool | str): Path to a .env file to read environment variables from. By default,
             will for a file in the current directory or `~/Documents`.
             Passed to `readin_env` as `path`.
-        cache (bool | str): Path to a cache directory, `True` or `""` to use the default directory,
-            or `False` to not use a cache.
+        cache (bool | str): Path to a cache directory, or `True` to use the default directory.
         cache_overwrite (bool): If `True`, will not check the cache for previously cached texts,
             but will store results in the cache (unlike `cache = False`).
         cache_format (str): File format of the cache, of available Arrow formats.
@@ -122,22 +121,24 @@ def request(
         Scores associated with each input text.
 
     Cache:
-        By default, results for unique texts are saved in an Arrow database in the cache location
-        (`os.getenv("RECEPTIVITI_CACHE")`), and are retrieved with subsequent requests. This ensures
-        that the exact same texts are not re-sent to the API. This does, however, add some
-        processing time and disc space usage.
+        If `cache` is specified, results for unique texts are saved in an Arrow database in the cache
+        location (`os.getenv("RECEPTIVITI_CACHE")`), and are retrieved with subsequent requests.
+        This ensures that the exact same texts are not re-sent to the API. This does, however,
+        add some processing time and disc space usage.
 
-        If a cache location is not specified, a default directory (`receptiviti_cache`) will be
+        If `cache` if `True`, a default directory (`receptiviti_cache`) will be
         looked for in the system's temporary directory (`tempfile.gettempdir()`).
+
+        The primary cache is checked when each bundle is processed, and existing results are loaded at
+        that time. When processing many bundles in parallel, and many results have been cached,
+        this can cause the system to freeze and potentially crash.
+        To avoid this, limit the number of cores, or disable parallel processing.
 
         The `cache_format` arguments (or the `RECEPTIVITI_CACHE_FORMAT` environment variable) can be
         used to adjust the format of the cache.
 
         You can use the cache independently with
         `pyarrow.dataset.dataset(os.getenv("RECEPTIVITI_CACHE"))`.
-
-        You can set the `cache` argument to `False` to prevent the cache from being used, which
-        might make sense if you don't expect to need to reprocess texts.
 
         You can also set the `clear_cache` argument to `True` to clear the cache before it is used
         again, which may be useful if the cache has gotten big, or you know new results will be
@@ -384,13 +385,14 @@ def request(
 
     # process bundles
     if isinstance(cache, str):
-        if not cache:
-            cache = CACHE
-        if clear_cache and os.path.exists(cache):
-            shutil.rmtree(cache, True)
-        os.makedirs(cache, exist_ok=True)
-        if not cache_format:
-            cache_format = os.getenv("RECEPTIVITI_CACHE_FORMAT", "parquet")
+        if cache:
+            if clear_cache and os.path.exists(cache):
+                shutil.rmtree(cache, True)
+            os.makedirs(cache, exist_ok=True)
+            if not cache_format:
+                cache_format = os.getenv("RECEPTIVITI_CACHE_FORMAT", "parquet")
+        else:
+            cache = False
     opts = {
         "url": f"{url}/{version}/{endpoint}/bulk".lower(),
         "auth": requests.auth.HTTPBasicAuth(key, secret),

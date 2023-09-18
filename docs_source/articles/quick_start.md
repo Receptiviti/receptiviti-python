@@ -247,7 +247,7 @@ results.iloc[:, :4]
 The `receptiviti.request` function tries to avoid sending texts to the API as much as possible:
 
 - As part of the preparation process, it excludes duplicates and invalid texts.
-- It checks the primary cache to see if any texts have already been scored.
+- If enabled, it checks the primary cache to see if any texts have already been scored.
   - The primary cache is an Arrow database located by the `cache` augment.
   - Its format is determined by `cache_format`.
   - You can skip checking it initially while still writing results to it with `cache_overwrite=True`.
@@ -276,9 +276,9 @@ is more RAM intensive, and the primary cache is updated less frequently (as it i
 only at the end of a complete run).
 
 You could also parallelize your own batches, but be sure to set `cores` to `1` (to disable
-the function's parallelization) and `cache` to `False` (to avoid attempting to read from
-the cache while it is being written to by another instance).
+the function's parallelization) and do not enable the primary cache (to avoid attempting to
+read from the cache while it is being written to by another instance).
 
-Disabling the cache is also more efficient, but you may want to ensure you are not
+Not using the primary cache is also more efficient, but you may want to ensure you are not
 sending duplicate texts between calls. The function handles duplicate texts within calls (only
 ever sending unique texts), but depends on the cache to avoid sending duplicates between calls.
