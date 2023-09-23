@@ -15,7 +15,7 @@ def status(
     secret: str = os.getenv("RECEPTIVITI_SECRET", ""),
     dotenv: Union[bool, str] = False,
     verbose=True,
-) -> requests.Response:
+) -> Union[requests.Response, None]:
     """
     Check the API's status.
 
@@ -48,7 +48,12 @@ def status(
     )
     if re.match("https?://[^.]+[.:][^.]", url, re.I) is None:
         raise TypeError("`url` does not appear to be valid: " + url)
-    res = requests.get(url.lower() + "/v1/ping", auth=(key, secret), timeout=9999)
+    try:
+        res = requests.get(url.lower() + "/v1/ping", auth=(key, secret), timeout=9999)
+    except requests.exceptions.RequestException:
+        if verbose:
+            print("Status: ERROR\nMessage: URL is unreachable")
+        return None
     content = res.json() if res.text[:1] == "{" else {"message": res.text}
     if verbose:
         print("Status: " + ("OK" if res.status_code == 200 else "ERROR"))

@@ -186,7 +186,7 @@ def request(
         readin_env("." if isinstance(dotenv, bool) else dotenv)
     if not url:
         url = os.getenv("RECEPTIVITI_URL", "https://api.receptiviti.com")
-    url_parts = re.search("/([Vv]\\d)/?([^/]+)?", url)
+    url_parts = re.search("/([Vv]\\d+)/?([^/]+)?", url)
     if url_parts:
         from_url = url_parts.groups()
         if not version and from_url[0] is not None:
@@ -194,7 +194,7 @@ def request(
         if not endpoint and from_url[1] is not None:
             endpoint = from_url[1]
     url = ("https://" if re.match("http", url, re.I) is None else "") + re.sub(
-        "/[Vv]\\d(?:/.*)?$|/+$", "", url
+        "/+[Vv]\\d+(?:/.*)?$|/+$", "", url
     )
     if not key:
         key = os.getenv("RECEPTIVITI_KEY", "")
@@ -206,8 +206,12 @@ def request(
         endpoint_default = "framework" if version.lower() == "v1" else "taxonomies"
         endpoint = os.getenv("RECEPTIVITI_ENDPOINT", endpoint_default)
     api_status = status(url, key, secret, dotenv, verbose=False)
-    if api_status.status_code != 200:
-        msg = f"API status failed: {api_status.status_code}: {api_status.reason}"
+    if not api_status or api_status.status_code != 200:
+        msg = (
+            f"API status failed: {api_status.status_code}: {api_status.reason}"
+            if api_status
+            else "URL is not reachable"
+        )
         raise RuntimeError(msg)
 
     # resolve text and ids
@@ -658,7 +662,8 @@ def _request(
             data = json.load(response)
             return data["results"] if "results" in data else data
     if res.status_code == 200:
-        data = dict(res.json())
+        data = res.json()
+        data = dict(data[0] if isinstance(data, list) else data)
         return data["results"] if "results" in data else data
     if os.path.isfile(cache):
         os.remove(cache)

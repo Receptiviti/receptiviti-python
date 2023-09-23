@@ -13,8 +13,14 @@ receptiviti.readin_env()
 
 @pytest.mark.skipif(os.getenv("RECEPTIVITI_KEY") is None, reason="no API key")
 class TestRequest:
+    def test_unreachable(self):
+        url = "http://localhost:0/not_served"
+        assert receptiviti.status(url) is None
+        with pytest.raises(RuntimeError, match="URL is not reachable"):
+            receptiviti.request("a text", url=url)
+
     def test_single_text(self):
-        res = receptiviti.request("text to score", cache=False)
+        res = receptiviti.request("text to score")
         assert res["summary.word_count"][0] == 3
 
     def test_invalid_text(self):
@@ -24,40 +30,31 @@ class TestRequest:
             receptiviti.request("")
 
     def test_multi_text(self):
-        res = receptiviti.request(
-            ["text to score", float("nan"), "another text", "another text"], cache=False
-        )
+        res = receptiviti.request(["text to score", float("nan"), "another text", "another text"])
         assert str(res["summary.word_count"][1]) == "nan"
         assert res["summary.word_count"].iloc[pandas.Index([0, 2, 3])].to_list() == [3, 2, 2]
 
     def test_framework_selection(self):
-        res = receptiviti.request(
-            ["text to score", "another text"], frameworks="summary", cache=False
-        )
+        res = receptiviti.request(["text to score", "another text"], frameworks="summary")
         assert res.shape == (2, 10)
         assert res["word_count"].to_list() == [3, 2]
 
     def test_framework_prefix(self):
         res = receptiviti.request(
-            ["text to score", "another text"],
-            frameworks="summary",
-            framework_prefix=True,
-            cache=False,
+            ["text to score", "another text"], frameworks="summary", framework_prefix=True
         )
         assert res["summary.word_count"].to_list() == [3, 2]
 
     def test_id_text(self):
         res = receptiviti.request(
-            ["text to score", "another text"], ids=["a", "b"], return_text=True, cache=False
+            ["text to score", "another text"], ids=["a", "b"], return_text=True
         )
         assert res["text"].to_list() == ["text to score", "another text"]
         assert res["id"].to_list() == ["a", "b"]
 
     def test_verbose(self):
         with redirect_stdout(StringIO()) as out:
-            receptiviti.request(
-                "text to score", frameworks=["summary", "sallee"], verbose=True, cache=False
-            )
+            receptiviti.request("text to score", frameworks=["summary", "sallee"], verbose=True)
         messages = out.getvalue().split("\n")
         expected = ["prep"] * 3 + ["requ", "done", "prep", "sele", "done", ""]
         assert len(messages) == len(expected) and all(
@@ -77,13 +74,11 @@ class TestRequest:
                 txt.write("\n".join(text))
             csv_file = f"{tempdir}/text.csv"
             pandas.DataFrame({"text": text}).to_csv(csv_file)
-            assert receptiviti.request(txt_file, cache=False)["id"].to_list() == [
+            assert receptiviti.request(txt_file)["id"].to_list() == [
                 txt_file + "0",
                 txt_file + "1",
             ]
-            assert receptiviti.request(csv_file, text_column="text", cache=False)[
-                "id"
-            ].to_list() == [
+            assert receptiviti.request(csv_file, text_column="text")["id"].to_list() == [
                 csv_file + "0",
                 csv_file + "1",
             ]
@@ -91,7 +86,7 @@ class TestRequest:
     @pytest.mark.skipif(not os.path.isfile("../data.txt"), reason="no txt test file present")
     def test_from_directory(self):
         with TemporaryDirectory() as tempdir:
-            res_single = receptiviti.request("../data.txt", cache=False)
+            res_single = receptiviti.request("../data.txt")
             nth_text = 0
             txt_files = []
             csv_files = []
@@ -105,9 +100,9 @@ class TestRequest:
                     csv_file = f"{tempdir}/{nth_text}.csv"
                     csv_files.append(csv_file)
                     pandas.DataFrame({"text": [text]}).to_csv(csv_file)
-            res_multi = receptiviti.request(tempdir, cache=False)
-            res_multi_txt = receptiviti.request(txt_files, cache=False)
-            res_multi_csv = receptiviti.request(csv_files, text_column="text", cache=False)
+            res_multi = receptiviti.request(tempdir)
+            res_multi_txt = receptiviti.request(txt_files)
+            res_multi_csv = receptiviti.request(csv_files, text_column="text")
         assert res_single["summary.word_count"].sum() == res_multi["summary.word_count"].sum()
         assert res_multi["summary.word_count"].sum() == res_multi_txt["summary.word_count"].sum()
         assert res_multi["summary.word_count"].sum() == res_multi_csv["summary.word_count"].sum()
@@ -132,3 +127,31 @@ class TestRequest:
                 cache=tempdir,
             )
         assert res_parallel["summary.word_count"].sum() == res_serial["summary.word_count"].sum()
+
+    @pytest.mark.skipif(
+        receptiviti.status(os.getenv("RECEPTIVITI_URL_TEST")) is None,
+        reason="test API is not reachable",
+    )
+    def test_endpoint_version(self):
+        with TemporaryDirectory() as tempdir:
+            receptiviti.request(
+                "text to process",
+                url=os.getenv("RECEPTIVITI_URL_TEST"),
+                key=os.getenv("RECEPTIVITI_KEY_TEST"),
+                secret=os.getenv("RECEPTIVITI_SECRET_TEST"),
+                cache=tempdir,
+            )
+            with redirect_stdout(StringIO()) as out:
+                receptiviti.request(
+                    "text to process",
+                    url=os.getenv("RECEPTIVITI_URL_TEST") + "v2/taxonomies",
+                    key=os.getenv("RECEPTIVITI_KEY_TEST"),
+                    secret=os.getenv("RECEPTIVITI_SECRET_TEST"),
+                    cache=tempdir,
+                    verbose=True,
+                )
+        messages = out.getvalue().split("\n")
+        expected = ["prep"] * 3 + ["requ", "done", "clea", "addi", "prep", "done", ""]
+        assert len(messages) == len(expected) and all(
+            line[:4] == expected[i] for i, line in enumerate(messages)
+        )
