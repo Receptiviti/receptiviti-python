@@ -6,6 +6,14 @@ A Python package to process text with the <a href="https://www.receptiviti.com" 
 
 If needed, download Python from <a href="https://www.python.org/downloads" rel="noreferrer" target="_blank">python.org</a>, then install the package with pip:
 
+Release (<a href="https://pypi.org/project/receptiviti" rel="noreferrer" target="_blank">version 0.1.0</a>)
+
+```sh
+pip install receptiviti
+```
+
+Development (version 0.1.1)
+
 ```sh
 pip install git+https://github.com/receptiviti/receptiviti-python.git
 ```

@@ -1,10 +1,16 @@
-# Receptiviti
-
 A Python package to process text with the [Receptiviti](https://www.receptiviti.com) API.
 
 ## Installation
 
 If needed, download Python from [python.org](https://www.python.org/downloads), then install the package with pip:
+
+Release ([version 0.1.0](https://pypi.org/project/receptiviti))
+
+```sh
+pip install receptiviti
+```
+
+Development (version 0.1.1)
 
 ```sh
 pip install git+https://github.com/receptiviti/receptiviti-python.git

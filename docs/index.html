@@ -534,48 +534,52 @@
 <p>A Python package to process text with the <a href="https://www.receptiviti.com" rel="noreferrer" target="_blank">Receptiviti</a> API.</p>
 <h2 id="installation">Installation</h2>
 <p>If needed, download Python from <a href="https://www.python.org/downloads" rel="noreferrer" target="_blank">python.org</a>, then install the package with pip:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/receptiviti/receptiviti-python.git
+<p>Release (<a href="https://pypi.org/project/receptiviti" rel="noreferrer" target="_blank">version 0.1.0</a>)</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>receptiviti
+</span></code></pre></div>
+<p>Development (version 0.1.1)</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/receptiviti/receptiviti-python.git
 </span></code></pre></div>
 <p>And load the package in a python console:</p>
-<div class="language-py highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span> <span class="nn">receptiviti</span>
+<div class="language-py highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span> <span class="nn">receptiviti</span>
 </span></code></pre></div>
 <h2 id="examples">Examples</h2>
-<div class="language-py highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># score a single text</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">single</span> <span class="o">=</span> <span class="n">receptiviti</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;a text to score&quot;</span><span class="p">)</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># score multiple texts, and write results to a file</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">multi</span> <span class="o">=</span> <span class="n">receptiviti</span><span class="o">.</span><span class="n">request</span><span class="p">([</span><span class="s2">&quot;first text to score&quot;</span><span class="p">,</span> <span class="s2">&quot;second text&quot;</span><span class="p">],</span> <span class="s2">&quot;filename.csv&quot;</span><span class="p">)</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># score texts in separate files</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1">## defaults to look for .txt files</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">file_results</span> <span class="o">=</span> <span class="n">receptiviti</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">directory</span> <span class="o">=</span> <span class="s2">&quot;./path/to/txt_folder&quot;</span><span class="p">)</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c1">## could be .csv</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">file_results</span> <span class="o">=</span> <span class="n">receptiviti</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>  <span class="n">directory</span> <span class="o">=</span> <span class="s2">&quot;./path/to/csv_folder&quot;</span><span class="p">,</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>  <span class="n">text_column</span> <span class="o">=</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="n">file_type</span> <span class="o">=</span> <span class="s2">&quot;csv&quot;</span>
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="p">)</span>
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="c1"># score texts in a single file</span>
-</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="n">results</span> <span class="o">=</span> <span class="n">receptiviti</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;./path/to/file.csv&quot;</span><span class="p">,</span> <span class="n">text_column</span> <span class="o">=</span> <span class="s2">&quot;text&quot;</span><span class="p">)</span>
+<div class="language-py highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># score a single text</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">single</span> <span class="o">=</span> <span class="n">receptiviti</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;a text to score&quot;</span><span class="p">)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># score multiple texts, and write results to a file</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">multi</span> <span class="o">=</span> <span class="n">receptiviti</span><span class="o">.</span><span class="n">request</span><span class="p">([</span><span class="s2">&quot;first text to score&quot;</span><span class="p">,</span> <span class="s2">&quot;second text&quot;</span><span class="p">],</span> <span class="s2">&quot;filename.csv&quot;</span><span class="p">)</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># score texts in separate files</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="c1">## defaults to look for .txt files</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">file_results</span> <span class="o">=</span> <span class="n">receptiviti</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">directory</span> <span class="o">=</span> <span class="s2">&quot;./path/to/txt_folder&quot;</span><span class="p">)</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1">## could be .csv</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">file_results</span> <span class="o">=</span> <span class="n">receptiviti</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>  <span class="n">directory</span> <span class="o">=</span> <span class="s2">&quot;./path/to/csv_folder&quot;</span><span class="p">,</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>  <span class="n">text_column</span> <span class="o">=</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="n">file_type</span> <span class="o">=</span> <span class="s2">&quot;csv&quot;</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="p">)</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="c1"># score texts in a single file</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="n">results</span> <span class="o">=</span> <span class="n">receptiviti</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">&quot;./path/to/file.csv&quot;</span><span class="p">,</span> <span class="n">text_column</span> <span class="o">=</span> <span class="s2">&quot;text&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h2 id="api-access">API Access</h2>
 <p>To access the API, you will need to load your key and secret, as found on your <a href="https://dashboard.receptiviti.com" rel="noreferrer" target="_blank">dashboard</a>.</p>
 <p>You can enter these as arguments in each function call, but by default they will be looked for in these environment variables:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>RECEPTIVITI_KEY=&quot;32lettersandnumbers&quot;
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>RECEPTIVITI_SECRET=&quot;56LettersAndNumbers&quot;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>RECEPTIVITI_KEY=&quot;32lettersandnumbers&quot;
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>RECEPTIVITI_SECRET=&quot;56LettersAndNumbers&quot;
 </span></code></pre></div>
 <p>You can store these in a <code>.env</code> (in the current directory or <code>~/Documents</code>) file permanently:</p>
-<div class="language-py highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># use the `dotenv` argument</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">receptiviti</span><span class="o">.</span><span class="n">status</span><span class="p">(</span><span class="n">dotenv</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># or load variables in beforehand</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">receptiviti</span><span class="o">.</span><span class="n">readin_env</span><span class="p">()</span>
+<div class="language-py highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># use the `dotenv` argument</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">receptiviti</span><span class="o">.</span><span class="n">status</span><span class="p">(</span><span class="n">dotenv</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># or load variables in beforehand</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">receptiviti</span><span class="o">.</span><span class="n">readin_env</span><span class="p">()</span>
 </span></code></pre></div>
 <p>Or set them temporarily:</p>
-<div class="language-py highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span> <span class="nn">os</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RECEPTIVITI_KEY&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;32lettersandnumbers&quot;</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RECEPTIVITI_SECRET&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;56LettersAndNumbers&quot;</span>
+<div class="language-py highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span> <span class="nn">os</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RECEPTIVITI_KEY&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;32lettersandnumbers&quot;</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RECEPTIVITI_SECRET&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;56LettersAndNumbers&quot;</span>
 </span></code></pre></div>
 
 

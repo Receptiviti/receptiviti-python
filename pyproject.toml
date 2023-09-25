@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "receptiviti"
 dynamic = ["version"]
-description = "Make requests to the Receptiviti API"
+description = "Process texts with the Receptiviti API"
 readme = "README.md"
 requires-python = ">=3.7"
 license = "MIT"
@@ -40,7 +40,7 @@ dev = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/receptiviti/receptiviti-python#readme"
+Documentation = "https://receptiviti.github.io/receptiviti-python"
 Issues = "https://github.com/receptiviti/receptiviti-python/issues"
 Source = "https://github.com/receptiviti/receptiviti-python"
 
