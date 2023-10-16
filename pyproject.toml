@@ -41,6 +41,7 @@ dev = [
 
 [project.urls]
 Documentation = "https://receptiviti.github.io/receptiviti-python"
+"Release Notes" = "https://receptiviti.github.io/receptiviti-python/CHANGELOG"
 Issues = "https://github.com/receptiviti/receptiviti-python/issues"
 Source = "https://github.com/receptiviti/receptiviti-python"
 
@@ -88,6 +89,9 @@ serve = "mkdocs serve --dev-addr localhost:8000 --clean"
 
 [[tool.hatch.envs.all.matrix]]
 python = ["3.7", "3.8", "3.9", "3.10", "3.11"]
+
+[[tool.hatch.envs.lint.matrix]]
+python = ["3.10"]
 
 [tool.hatch.envs.lint]
 detached = true

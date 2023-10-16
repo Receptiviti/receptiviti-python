@@ -4,7 +4,7 @@ A Python package to process text with the [Receptiviti](https://www.receptiviti.
 
 If needed, download Python from [python.org](https://www.python.org/downloads), then install the package with pip:
 
-Release ([version 0.1.0](https://pypi.org/project/receptiviti))
+Release ([version 0.1.0](https://pypi.org/project/receptiviti/0.1.0))
 
 ```sh
 pip install receptiviti

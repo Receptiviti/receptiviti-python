@@ -31,12 +31,13 @@ REQUEST_CACHE = gettempdir() + "/receptiviti_request_cache/"
 def request(
     text: Union[str, List[str], pandas.DataFrame, None] = None,
     output: Union[str, None] = None,
-    ids: Union[str, List[Union[str, int]], None] = None,
+    ids: Union[str, List[str], List[int], None] = None,
     text_column: Union[str, None] = None,
     id_column: Union[str, None] = None,
     files: Union[List[str], None] = None,
     directory: Union[str, None] = None,
     file_type: str = "txt",
+    encoding: str | None = None,
     return_text=False,
     api_args: Union[dict, None] = None,
     frameworks: Union[str, List[str], None] = None,
@@ -82,6 +83,8 @@ def request(
         files (list[str]): Vector of file paths, as alternate entry to `text`.
         directory (str): A directory path to search for files in, as alternate entry to `text`.
         file_type (str): Extension of the file(s) to be read in from a directory (`txt` or `csv`).
+        encoding (str | None): Encoding of `txt` file(s) to be read in; one of the
+            [standard encodings](https://docs.python.org/3/library/codecs.html#standard-encodings).
         return_text (bool): If `True`, will include a `text` column in the output with the
             original text.
         api_args (dict): Additional arguments to include in the request.
@@ -115,23 +118,23 @@ def request(
         secret (str): Your API secret.
         url (str): The URL of the API; defaults to `https://api.receptiviti.com`.
         version (str): Version of the API; defaults to `v1`.
-        endpoint (str): Endpoint of the API; defaults to fefe `framework`.
+        endpoint (str): Endpoint of the API; defaults to `framework`.
 
     Returns:
         Scores associated with each input text.
 
     Cache:
-        If `cache` is specified, results for unique texts are saved in an Arrow database in the cache
-        location (`os.getenv("RECEPTIVITI_CACHE")`), and are retrieved with subsequent requests.
-        This ensures that the exact same texts are not re-sent to the API. This does, however,
-        add some processing time and disc space usage.
+        If `cache` is specified, results for unique texts are saved in an Arrow database
+        in the cache location (`os.getenv("RECEPTIVITI_CACHE")`), and are retrieved with
+        subsequent requests. This ensures that the exact same texts are not re-sent to the API.
+        This does, however, add some processing time and disc space usage.
 
         If `cache` if `True`, a default directory (`receptiviti_cache`) will be
         looked for in the system's temporary directory (`tempfile.gettempdir()`).
 
-        The primary cache is checked when each bundle is processed, and existing results are loaded at
-        that time. When processing many bundles in parallel, and many results have been cached,
-        this can cause the system to freeze and potentially crash.
+        The primary cache is checked when each bundle is processed, and existing results are
+        loaded at that time. When processing many bundles in parallel, and many results have
+        been cached, this can cause the system to freeze and potentially crash.
         To avoid this, limit the number of cores, or disable parallel processing.
 
         The `cache_format` arguments (or the `RECEPTIVITI_CACHE_FORMAT` environment variable) can be
@@ -220,6 +223,7 @@ def request(
         text_cols=text_column,
         id_cols=id_column,
         collapse=collapse_lines,
+        encoding=encoding,
     ) -> Union[List[str], pandas.DataFrame]:
         text = []
         ids = []
@@ -231,39 +235,38 @@ def request(
         if os.path.splitext(paths[0])[1] == ".txt" and not sel:
             if collapse:
                 for file in paths:
-                    with open(file, encoding="utf-8") as texts:
+                    with open(file, encoding=encoding, errors="surrogateescape") as texts:
                         text.append(" ".join([line.rstrip() for line in texts]))
             else:
                 for file in paths:
-                    with open(file, encoding="utf-8") as texts:
+                    with open(file, encoding=encoding, errors="surrogateescape") as texts:
                         lines = [line.rstrip() for line in texts]
                         text += lines
                         ids += (
                             [file]
                             if len(lines) == 1
-                            else [file + str(i) for i in range(len(lines))]
+                            else [file + str(i + 1) for i in range(len(lines))]
                         )
                 return pandas.DataFrame({"text": text, "ids": ids})
+        elif collapse:
+            for file in paths:
+                temp = pandas.read_csv(file, usecols=sel)
+                text.append(" ".join(temp[text_cols]))
         else:
-            if collapse:
-                for file in paths:
-                    temp = pandas.read_csv(file, usecols=sel)
-                    text.append(" ".join(temp[text_cols]))
-            else:
-                for file in paths:
-                    temp = pandas.read_csv(file, usecols=sel)
-                    if not text_cols in temp:
-                        msg = f"`text_column` ({text_cols}) was not found in all files"
-                        raise IndexError(msg)
-                    text += temp[text_cols].to_list()
-                    ids += (
-                        temp[id_cols].to_list()
-                        if id_cols is not None
-                        else [file]
-                        if len(temp) == 1
-                        else [file + str(i) for i in range(len(temp))]
-                    )
-                return pandas.DataFrame({"text": text, "ids": ids})
+            for file in paths:
+                temp = pandas.read_csv(file, usecols=sel)
+                if text_cols not in temp:
+                    msg = f"`text_column` ({text_cols}) was not found in all files"
+                    raise IndexError(msg)
+                text += temp[text_cols].to_list()
+                ids += (
+                    temp[id_cols].to_list()
+                    if id_cols is not None
+                    else [file]
+                    if len(temp) == 1
+                    else [file + str(i + 1) for i in range(len(temp))]
+                )
+            return pandas.DataFrame({"text": text, "ids": ids})
         return text
 
     text_as_dir = False
@@ -318,7 +321,7 @@ def request(
         text = readin(text)
         if isinstance(text, pandas.DataFrame):
             if id_column is None:
-                ids = text["ids"]
+                ids = text["ids"].to_list()
             elif id_column in text:
                 ids = text[id_column].to_list()
             if text_column is None:

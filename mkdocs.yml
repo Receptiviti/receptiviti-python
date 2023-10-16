@@ -54,6 +54,7 @@ markdown_extensions:
 nav:
   - Home: README.md
   - Get Started: articles/quick_start.ipynb
+  - Changelog: CHANGELOG.md
   - References:
       - functions/request.md
       - functions/status.md

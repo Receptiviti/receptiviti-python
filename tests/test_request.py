@@ -3,8 +3,8 @@ from contextlib import redirect_stdout
 from io import StringIO
 from tempfile import TemporaryDirectory
 
-import pytest
 import pandas
+import pytest
 
 import receptiviti
 
@@ -75,12 +75,12 @@ class TestRequest:
             csv_file = f"{tempdir}/text.csv"
             pandas.DataFrame({"text": text}).to_csv(csv_file)
             assert receptiviti.request(txt_file)["id"].to_list() == [
-                txt_file + "0",
                 txt_file + "1",
+                txt_file + "2",
             ]
             assert receptiviti.request(csv_file, text_column="text")["id"].to_list() == [
-                csv_file + "0",
                 csv_file + "1",
+                csv_file + "2",
             ]
 
     @pytest.mark.skipif(not os.path.isfile("../data.txt"), reason="no txt test file present")
@@ -129,7 +129,7 @@ class TestRequest:
         assert res_parallel["summary.word_count"].sum() == res_serial["summary.word_count"].sum()
 
     @pytest.mark.skipif(
-        receptiviti.status(os.getenv("RECEPTIVITI_URL_TEST")) is None,
+        receptiviti.status(os.getenv("RECEPTIVITI_URL_TEST", "")) is None,
         reason="test API is not reachable",
     )
     def test_endpoint_version(self):

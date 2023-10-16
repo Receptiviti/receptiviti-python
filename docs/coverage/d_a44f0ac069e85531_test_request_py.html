@@ -64,8 +64,8 @@
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="d_a44f0ac069e85531_test_status_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.3.1">coverage.py v7.3.1</a>,
-            created at 2023-09-23 15:32 -0400
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.3.2">coverage.py v7.3.2</a>,
+            created at 2023-10-16 13:28 -0400
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"/>
@@ -85,8 +85,8 @@
     <p class="run"><span class="n"><a id="t3" href="#t3">3</a></span><span class="t"><span class="key">from</span> <span class="nam">io</span> <span class="key">import</span> <span class="nam">StringIO</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t4" href="#t4">4</a></span><span class="t"><span class="key">from</span> <span class="nam">tempfile</span> <span class="key">import</span> <span class="nam">TemporaryDirectory</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t5" href="#t5">5</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t6" href="#t6">6</a></span><span class="t"><span class="key">import</span> <span class="nam">pytest</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t7" href="#t7">7</a></span><span class="t"><span class="key">import</span> <span class="nam">pandas</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t6" href="#t6">6</a></span><span class="t"><span class="key">import</span> <span class="nam">pandas</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t7" href="#t7">7</a></span><span class="t"><span class="key">import</span> <span class="nam">pytest</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t8" href="#t8">8</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t9" href="#t9">9</a></span><span class="t"><span class="key">import</span> <span class="nam">receptiviti</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t10" href="#t10">10</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -157,12 +157,12 @@
     <p class="run"><span class="n"><a id="t75" href="#t75">75</a></span><span class="t">            <span class="nam">csv_file</span> <span class="op">=</span> <span class="str">f"{tempdir}/text.csv"</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t76" href="#t76">76</a></span><span class="t">            <span class="nam">pandas</span><span class="op">.</span><span class="nam">DataFrame</span><span class="op">(</span><span class="op">{</span><span class="str">"text"</span><span class="op">:</span> <span class="nam">text</span><span class="op">}</span><span class="op">)</span><span class="op">.</span><span class="nam">to_csv</span><span class="op">(</span><span class="nam">csv_file</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t77" href="#t77">77</a></span><span class="t">            <span class="key">assert</span> <span class="nam">receptiviti</span><span class="op">.</span><span class="nam">request</span><span class="op">(</span><span class="nam">txt_file</span><span class="op">)</span><span class="op">[</span><span class="str">"id"</span><span class="op">]</span><span class="op">.</span><span class="nam">to_list</span><span class="op">(</span><span class="op">)</span> <span class="op">==</span> <span class="op">[</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t78" href="#t78">78</a></span><span class="t">                <span class="nam">txt_file</span> <span class="op">+</span> <span class="str">"0"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t79" href="#t79">79</a></span><span class="t">                <span class="nam">txt_file</span> <span class="op">+</span> <span class="str">"1"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t78" href="#t78">78</a></span><span class="t">                <span class="nam">txt_file</span> <span class="op">+</span> <span class="str">"1"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t79" href="#t79">79</a></span><span class="t">                <span class="nam">txt_file</span> <span class="op">+</span> <span class="str">"2"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t80" href="#t80">80</a></span><span class="t">            <span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t81" href="#t81">81</a></span><span class="t">            <span class="key">assert</span> <span class="nam">receptiviti</span><span class="op">.</span><span class="nam">request</span><span class="op">(</span><span class="nam">csv_file</span><span class="op">,</span> <span class="nam">text_column</span><span class="op">=</span><span class="str">"text"</span><span class="op">)</span><span class="op">[</span><span class="str">"id"</span><span class="op">]</span><span class="op">.</span><span class="nam">to_list</span><span class="op">(</span><span class="op">)</span> <span class="op">==</span> <span class="op">[</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t82" href="#t82">82</a></span><span class="t">                <span class="nam">csv_file</span> <span class="op">+</span> <span class="str">"0"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t83" href="#t83">83</a></span><span class="t">                <span class="nam">csv_file</span> <span class="op">+</span> <span class="str">"1"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t82" href="#t82">82</a></span><span class="t">                <span class="nam">csv_file</span> <span class="op">+</span> <span class="str">"1"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t83" href="#t83">83</a></span><span class="t">                <span class="nam">csv_file</span> <span class="op">+</span> <span class="str">"2"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t84" href="#t84">84</a></span><span class="t">            <span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t85" href="#t85">85</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t86" href="#t86">86</a></span><span class="t">    <span class="op">@</span><span class="nam">pytest</span><span class="op">.</span><span class="nam">mark</span><span class="op">.</span><span class="nam">skipif</span><span class="op">(</span><span class="key">not</span> <span class="nam">os</span><span class="op">.</span><span class="nam">path</span><span class="op">.</span><span class="nam">isfile</span><span class="op">(</span><span class="str">"../data.txt"</span><span class="op">)</span><span class="op">,</span> <span class="nam">reason</span><span class="op">=</span><span class="str">"no txt test file present"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -211,7 +211,7 @@
     <p class="run"><span class="n"><a id="t129" href="#t129">129</a></span><span class="t">        <span class="key">assert</span> <span class="nam">res_parallel</span><span class="op">[</span><span class="str">"summary.word_count"</span><span class="op">]</span><span class="op">.</span><span class="nam">sum</span><span class="op">(</span><span class="op">)</span> <span class="op">==</span> <span class="nam">res_serial</span><span class="op">[</span><span class="str">"summary.word_count"</span><span class="op">]</span><span class="op">.</span><span class="nam">sum</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t130" href="#t130">130</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t131" href="#t131">131</a></span><span class="t">    <span class="op">@</span><span class="nam">pytest</span><span class="op">.</span><span class="nam">mark</span><span class="op">.</span><span class="nam">skipif</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t132" href="#t132">132</a></span><span class="t">        <span class="nam">receptiviti</span><span class="op">.</span><span class="nam">status</span><span class="op">(</span><span class="nam">os</span><span class="op">.</span><span class="nam">getenv</span><span class="op">(</span><span class="str">"RECEPTIVITI_URL_TEST"</span><span class="op">)</span><span class="op">)</span> <span class="key">is</span> <span class="key">None</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t132" href="#t132">132</a></span><span class="t">        <span class="nam">receptiviti</span><span class="op">.</span><span class="nam">status</span><span class="op">(</span><span class="nam">os</span><span class="op">.</span><span class="nam">getenv</span><span class="op">(</span><span class="str">"RECEPTIVITI_URL_TEST"</span><span class="op">,</span> <span class="str">""</span><span class="op">)</span><span class="op">)</span> <span class="key">is</span> <span class="key">None</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t133" href="#t133">133</a></span><span class="t">        <span class="nam">reason</span><span class="op">=</span><span class="str">"test API is not reachable"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t134" href="#t134">134</a></span><span class="t">    <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t135" href="#t135">135</a></span><span class="t">    <span class="key">def</span> <span class="nam">test_endpoint_version</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -245,8 +245,8 @@
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="d_a44f0ac069e85531_test_status_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.3.1">coverage.py v7.3.1</a>,
-            created at 2023-09-23 15:32 -0400
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.3.2">coverage.py v7.3.2</a>,
+            created at 2023-10-16 13:28 -0400
         </p>
     </div>
 </footer>
