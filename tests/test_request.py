@@ -95,14 +95,16 @@ class TestRequest:
                     nth_text += 1
                     txt_file = f"{tempdir}/{nth_text}.txt"
                     txt_files.append(txt_file)
-                    with open(txt_file, "w", encoding="utf-8") as txt:
+                    with open(txt_file, "w", encoding="utf-16") as txt:
                         txt.write(text)
                     csv_file = f"{tempdir}/{nth_text}.csv"
                     csv_files.append(csv_file)
-                    pandas.DataFrame({"text": [text]}).to_csv(csv_file)
-            res_multi = receptiviti.request(tempdir)
+                    pandas.DataFrame({"text": [text]}).to_csv(csv_file, encoding="utf-16")
+            res_misencode = receptiviti.request(tempdir, encoding="utf-8", return_text=True)
+            res_multi = receptiviti.request(tempdir, return_text=True)
             res_multi_txt = receptiviti.request(txt_files)
             res_multi_csv = receptiviti.request(csv_files, text_column="text")
+        assert not all((a == b for a, b in zip(res_multi["text"], res_misencode["text"])))
         assert res_single["summary.word_count"].sum() == res_multi["summary.word_count"].sum()
         assert res_multi["summary.word_count"].sum() == res_multi_txt["summary.word_count"].sum()
         assert res_multi["summary.word_count"].sum() == res_multi_csv["summary.word_count"].sum()

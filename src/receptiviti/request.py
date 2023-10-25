@@ -18,6 +18,7 @@ import numpy
 import pandas
 import pyarrow
 import requests
+from chardet.universaldetector import UniversalDetector
 from pyarrow import compute, dataset
 from tqdm import tqdm
 
@@ -37,7 +38,7 @@ def request(
     files: Union[List[str], None] = None,
     directory: Union[str, None] = None,
     file_type: str = "txt",
-    encoding: str | None = None,
+    encoding: Union[str, None] = None,
     return_text=False,
     api_args: Union[dict, None] = None,
     frameworks: Union[str, List[str], None] = None,
@@ -51,7 +52,7 @@ def request(
     cores=cpu_count() - 2,
     in_memory: Union[bool, None] = None,
     verbose=False,
-    progress_bar=True,
+    progress_bar: Union[str, bool] = os.getenv("RECEPTIVITI_PB", "True"),
     overwrite=False,
     make_request=True,
     text_as_paths=False,
@@ -83,8 +84,11 @@ def request(
         files (list[str]): Vector of file paths, as alternate entry to `text`.
         directory (str): A directory path to search for files in, as alternate entry to `text`.
         file_type (str): Extension of the file(s) to be read in from a directory (`txt` or `csv`).
-        encoding (str | None): Encoding of `txt` file(s) to be read in; one of the
+        encoding (str | None): Encoding of file(s) to be read in; one of the
             [standard encodings](https://docs.python.org/3/library/codecs.html#standard-encodings).
+            If this is `None` (default), encoding will be predicted for each file, but this can
+            potentially fail, resulting in mis-encoded characters. For best (and fastest) results,
+            specify encoding.
         return_text (bool): If `True`, will include a `text` column in the output with the
             original text.
         api_args (dict): Additional arguments to include in the request.
@@ -103,7 +107,7 @@ def request(
         in_memory (bool | None): If `False`, will write bundles to disc, to be loaded when
             processed. Defaults to `True` when processing in parallel.
         verbose (bool): If `True`, will print status messages and preserve the progress bar.
-        progress_bar (bool): If `False`, will not display a progress bar.
+        progress_bar (str | bool): If `False`, will not display a progress bar.
         overwrite (bool): If `True`, will overwrite an existing `output` file.
         text_as_paths (bool): If `True`, will explicitly mark `text` as a list of file paths.
             Otherwise, this will be detected.
@@ -232,14 +236,29 @@ def request(
             sel.append(text_cols)
         if id_cols is not None:
             sel.append(id_cols)
+        enc = encoding
+        predict_encoding = enc is None
+        if predict_encoding:
+            detect = UniversalDetector()
+
+            def handle_encoding(file: str):
+                detect.reset()
+                with open(file, "rb") as text:
+                    detect.feed(text.readline(5))
+                return detect.close()["encoding"]
+
         if os.path.splitext(paths[0])[1] == ".txt" and not sel:
             if collapse:
                 for file in paths:
-                    with open(file, encoding=encoding, errors="surrogateescape") as texts:
+                    if predict_encoding:
+                        enc = handle_encoding(file)
+                    with open(file, encoding=enc, errors="ignore") as texts:
                         text.append(" ".join([line.rstrip() for line in texts]))
             else:
                 for file in paths:
-                    with open(file, encoding=encoding, errors="surrogateescape") as texts:
+                    if predict_encoding:
+                        enc = handle_encoding(file)
+                    with open(file, encoding=enc, errors="ignore") as texts:
                         lines = [line.rstrip() for line in texts]
                         text += lines
                         ids += (
@@ -250,11 +269,15 @@ def request(
                 return pandas.DataFrame({"text": text, "ids": ids})
         elif collapse:
             for file in paths:
-                temp = pandas.read_csv(file, usecols=sel)
+                if predict_encoding:
+                    enc = handle_encoding(file)
+                temp = pandas.read_csv(file, encoding=enc, usecols=sel)
                 text.append(" ".join(temp[text_cols]))
         else:
             for file in paths:
-                temp = pandas.read_csv(file, usecols=sel)
+                if predict_encoding:
+                    enc = handle_encoding(file)
+                temp = pandas.read_csv(file, encoding=enc, usecols=sel)
                 if text_cols not in temp:
                     msg = f"`text_column` ({text_cols}) was not found in all files"
                     raise IndexError(msg)
@@ -278,7 +301,7 @@ def request(
             text_as_paths = True
             text = files
         else:
-            msg = "enter text as the first argument, or use the files or directory arguments"
+            msg = "enter text as the first argument, or use the `files` or `directory` arguments"
             raise RuntimeError(msg)
     if isinstance(text, str) and (text_as_dir or text_as_paths or len(text) < 260):
         if not text_as_dir and os.path.isfile(text):
@@ -292,6 +315,9 @@ def request(
         elif os.path.isdir(text):
             text = glob(f"{text}/*{file_type}")
             text_as_paths = True
+        elif os.path.isdir(os.path.dirname(text)):
+            msg = f"`text` appears to point to a directory, but it does not exist: {text}"
+            raise RuntimeError(msg)
     if isinstance(text, pandas.DataFrame):
         if id_column is not None:
             if id_column in text:
@@ -417,6 +443,8 @@ def request(
             separators=(",", ":"),
         ).encode()
     ).hexdigest()
+    if isinstance(progress_bar, str):
+        progress_bar = progress_bar == "True"
     use_pb = (verbose and progress_bar) or progress_bar
     parallel = n_bundles > 1 and cores > 1
     if in_memory is None:
@@ -460,8 +488,7 @@ def request(
         else:
             if verbose:
                 print(f"requesting serially ({perf_counter() - start_time:.4f})")
-            if use_pb:
-                pb = tqdm(total=n_texts, leave=verbose)
+            pb = tqdm(total=n_texts, leave=verbose) if use_pb else None
             res = _process(bundles, opts, pb=pb)
             if use_pb:
                 pb.close()

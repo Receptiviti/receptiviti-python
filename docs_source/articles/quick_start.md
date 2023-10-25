@@ -16,9 +16,9 @@ kernelspec:
 ```{code-cell} ipython3
 :tags: [hide_cell]
 
-import receptiviti
-import pandas
 import os
+os.environ["RECEPTIVITI_PB"]="False"
+import receptiviti
 receptiviti.readin_env()
 os.environ["RECEPTIVITI_URL"]=os.environ["RECEPTIVITI_URL_TEST"]
 os.environ["RECEPTIVITI_KEY"]=os.environ["RECEPTIVITI_KEY_TEST"]
