@@ -86,7 +86,8 @@ class TestRequest:
     @pytest.mark.skipif(not os.path.isfile("../data.txt"), reason="no txt test file present")
     def test_from_directory(self):
         with TemporaryDirectory() as tempdir:
-            res_single = receptiviti.request("../data.txt")
+            cache = tempdir + "/cache"
+            res_single = receptiviti.request("../data.txt", cache=cache)
             nth_text = 0
             txt_files = []
             csv_files = []
@@ -100,14 +101,30 @@ class TestRequest:
                     csv_file = f"{tempdir}/{nth_text}.csv"
                     csv_files.append(csv_file)
                     pandas.DataFrame({"text": [text]}).to_csv(csv_file, encoding="utf-16")
-            res_misencode = receptiviti.request(tempdir, encoding="utf-8", return_text=True)
-            res_multi = receptiviti.request(tempdir, return_text=True)
-            res_multi_txt = receptiviti.request(txt_files)
-            res_multi_csv = receptiviti.request(csv_files, text_column="text")
+            res_misencode = receptiviti.request(
+                tempdir, encoding="utf-8", return_text=True, cache=cache
+            )
+            res_multi = receptiviti.request(tempdir, return_text=True, cache=cache)
+            res_multi_txt = receptiviti.request(txt_files, cache=cache)
+            res_multi_csv = receptiviti.request(csv_files, text_column="text", cache=cache)
+            res_multi_txt_collapse = receptiviti.request(
+                txt_files, collapse_lines=True, cache=cache
+            )
+            res_multi_csv_collapse = receptiviti.request(
+                csv_files, text_column="text", collapse_lines=True, cache=cache
+            )
         assert not all((a == b for a, b in zip(res_multi["text"], res_misencode["text"])))
         assert res_single["summary.word_count"].sum() == res_multi["summary.word_count"].sum()
         assert res_multi["summary.word_count"].sum() == res_multi_txt["summary.word_count"].sum()
         assert res_multi["summary.word_count"].sum() == res_multi_csv["summary.word_count"].sum()
+        assert (
+            res_multi["summary.word_count"].sum()
+            == res_multi_txt_collapse["summary.word_count"].sum()
+        )
+        assert (
+            res_multi["summary.word_count"].sum()
+            == res_multi_csv_collapse["summary.word_count"].sum()
+        )
 
     @pytest.mark.skipif(not os.path.isfile("../data.csv"), reason="no csv test file present")
     def test_from_file(self):

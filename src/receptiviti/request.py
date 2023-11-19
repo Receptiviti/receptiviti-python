@@ -222,76 +222,6 @@ def request(
         raise RuntimeError(msg)
 
     # resolve text and ids
-    def readin(
-        paths: List[str],
-        text_cols=text_column,
-        id_cols=id_column,
-        collapse=collapse_lines,
-        encoding=encoding,
-    ) -> Union[List[str], pandas.DataFrame]:
-        text = []
-        ids = []
-        sel = []
-        if text_cols is not None:
-            sel.append(text_cols)
-        if id_cols is not None:
-            sel.append(id_cols)
-        enc = encoding
-        predict_encoding = enc is None
-        if predict_encoding:
-            detect = UniversalDetector()
-
-            def handle_encoding(file: str):
-                detect.reset()
-                with open(file, "rb") as text:
-                    detect.feed(text.readline(5))
-                return detect.close()["encoding"]
-
-        if os.path.splitext(paths[0])[1] == ".txt" and not sel:
-            if collapse:
-                for file in paths:
-                    if predict_encoding:
-                        enc = handle_encoding(file)
-                    with open(file, encoding=enc, errors="ignore") as texts:
-                        text.append(" ".join([line.rstrip() for line in texts]))
-            else:
-                for file in paths:
-                    if predict_encoding:
-                        enc = handle_encoding(file)
-                    with open(file, encoding=enc, errors="ignore") as texts:
-                        lines = [line.rstrip() for line in texts]
-                        text += lines
-                        ids += (
-                            [file]
-                            if len(lines) == 1
-                            else [file + str(i + 1) for i in range(len(lines))]
-                        )
-                return pandas.DataFrame({"text": text, "ids": ids})
-        elif collapse:
-            for file in paths:
-                if predict_encoding:
-                    enc = handle_encoding(file)
-                temp = pandas.read_csv(file, encoding=enc, usecols=sel)
-                text.append(" ".join(temp[text_cols]))
-        else:
-            for file in paths:
-                if predict_encoding:
-                    enc = handle_encoding(file)
-                temp = pandas.read_csv(file, encoding=enc, usecols=sel)
-                if text_cols not in temp:
-                    msg = f"`text_column` ({text_cols}) was not found in all files"
-                    raise IndexError(msg)
-                text += temp[text_cols].to_list()
-                ids += (
-                    temp[id_cols].to_list()
-                    if id_cols is not None
-                    else [file]
-                    if len(temp) == 1
-                    else [file + str(i + 1) for i in range(len(temp))]
-                )
-            return pandas.DataFrame({"text": text, "ids": ids})
-        return text
-
     text_as_dir = False
     if text is None:
         if directory is not None:
@@ -307,7 +237,7 @@ def request(
         if not text_as_dir and os.path.isfile(text):
             if verbose:
                 print(f"reading in texts from a file ({perf_counter() - start_time:.4f})")
-            text = readin([text])
+            text = _readin([text], text_column, id_column, collapse_lines, encoding)
             if isinstance(text, pandas.DataFrame):
                 id_column = "ids"
                 text_column = "text"
@@ -344,7 +274,7 @@ def request(
         raise RuntimeError(msg)
     if text_is_path and not collapse_lines:
         ids = text
-        text = readin(text)
+        text = _readin(text, text_column, id_column, collapse_lines, encoding)
         if isinstance(text, pandas.DataFrame):
             if id_column is None:
                 ids = text["ids"].to_list()
@@ -431,11 +361,15 @@ def request(
         "auth": requests.auth.HTTPBasicAuth(key, secret),
         "retries": retry_limit,
         "add": {} if api_args is None else api_args,
-        "are_paths": text_is_path,
         "request_cache": request_cache,
         "cache": "" if cache_overwrite or isinstance(cache, bool) and not cache else cache,
         "cache_format": cache_format,
         "make_request": make_request,
+        "text_is_path": text_is_path,
+        "text_column": text_column,
+        "id_column": id_column,
+        "collapse_lines": collapse_lines,
+        "encoding": encoding,
     }
     opts["add_hash"] = hashlib.md5(
         json.dumps(
@@ -595,6 +529,14 @@ def _process(
                 bundle = pickle.load(scratch)
         body = []
         bundle.insert(0, "text_hash", "")
+        if opts["text_is_path"]:
+            bundle["text"] = _readin(
+                bundle["text"],
+                opts["text_column"],
+                opts["id_column"],
+                opts["collapse_lines"],
+                opts["encoding"],
+            )
         for i, text in enumerate(bundle["text"]):
             text_hash = hashlib.md5((opts["add_hash"] + text).encode()).hexdigest()
             bundle.iat[i, 0] = text_hash
@@ -808,3 +750,74 @@ def _manage_request_cache():
     except Exception as exc:
         msg = "failed to manage request cache"
         raise RuntimeWarning(msg) from exc
+
+
+def _readin(
+    paths: List[str],
+    text_column: Union[str, None],
+    id_column: Union[str, None],
+    collapse_lines: bool,
+    encoding: str,
+) -> Union[List[str], pandas.DataFrame]:
+    text = []
+    ids = []
+    sel = []
+    if text_column is not None:
+        sel.append(text_column)
+    if id_column is not None:
+        sel.append(id_column)
+    enc = encoding
+    predict_encoding = enc is None
+    if predict_encoding:
+        detect = UniversalDetector()
+
+        def handle_encoding(file: str):
+            detect.reset()
+            with open(file, "rb") as text:
+                detect.feed(text.readline(5))
+            return detect.close()["encoding"]
+
+    if os.path.splitext(paths[0])[1] == ".txt" and not sel:
+        if collapse_lines:
+            for file in paths:
+                if predict_encoding:
+                    enc = handle_encoding(file)
+                with open(file, encoding=enc, errors="ignore") as texts:
+                    text.append(" ".join([line.rstrip() for line in texts]))
+        else:
+            for file in paths:
+                if predict_encoding:
+                    enc = handle_encoding(file)
+                with open(file, encoding=enc, errors="ignore") as texts:
+                    lines = [line.rstrip() for line in texts]
+                    text += lines
+                    ids += (
+                        [file]
+                        if len(lines) == 1
+                        else [file + str(i + 1) for i in range(len(lines))]
+                    )
+            return pandas.DataFrame({"text": text, "ids": ids})
+    elif collapse_lines:
+        for file in paths:
+            if predict_encoding:
+                enc = handle_encoding(file)
+            temp = pandas.read_csv(file, encoding=enc, usecols=sel)
+            text.append(" ".join(temp[text_column]))
+    else:
+        for file in paths:
+            if predict_encoding:
+                enc = handle_encoding(file)
+            temp = pandas.read_csv(file, encoding=enc, usecols=sel)
+            if text_column not in temp:
+                msg = f"`text_column` ({text_column}) was not found in all files"
+                raise IndexError(msg)
+            text += temp[text_column].to_list()
+            ids += (
+                temp[id_column].to_list()
+                if id_column is not None
+                else [file]
+                if len(temp) == 1
+                else [file + str(i + 1) for i in range(len(temp))]
+            )
+        return pandas.DataFrame({"text": text, "ids": ids})
+    return text
