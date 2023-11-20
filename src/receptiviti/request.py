@@ -424,7 +424,7 @@ def request(
                 print(f"requesting serially ({perf_counter() - start_time:.4f})")
             pb = tqdm(total=n_texts, leave=verbose) if use_pb else None
             res = _process(bundles, opts, pb=pb)
-            if use_pb:
+            if pb is not None:
                 pb.close()
     if verbose:
         print(f"done requesting ({perf_counter() - start_time:.4f})")
@@ -757,7 +757,7 @@ def _readin(
     text_column: Union[str, None],
     id_column: Union[str, None],
     collapse_lines: bool,
-    encoding: str,
+    encoding: Union[str, None],
 ) -> Union[List[str], pandas.DataFrame]:
     text = []
     ids = []
