@@ -2,6 +2,8 @@
 
 A Python package to process text with the <a href="https://www.receptiviti.com" rel="noreferrer" target="_blank">Receptiviti</a> API.
 
+An R package is also available at <a href="https://receptiviti.github.io/receptiviti-r" rel="noreferrer" target="_blank">Receptiviti/receptiviti-r</a>.
+
 ## Installation
 
 If needed, download Python from <a href="https://www.python.org/downloads" rel="noreferrer" target="_blank">python.org</a>, then install the package with pip:

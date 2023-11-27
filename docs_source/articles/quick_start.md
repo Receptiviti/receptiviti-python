@@ -265,7 +265,7 @@ still be in the request cache, but those will be deleted after a day.
 
 ## Handling Big Data
 
-The `receptiviti` function will handle splitting texts into bundles, so the limit on how many texts
+The `receptiviti.request` function will handle splitting texts into bundles, so the limit on how many texts
 you can process at once will come down to your system's amount of random access memory (RAM).
 Several thousands of texts should be fine, but getting into millions of texts, you may not be able
 to have all of the results loaded at once. To get around this, you can fully process subsets
