@@ -1,5 +1,11 @@
 # Changelog
 
+## receptiviti 0.1.2
+
+### Improvements
+
+- Improves environment file resolution.
+
 ## receptiviti 0.1.1
 
 ### Improvements

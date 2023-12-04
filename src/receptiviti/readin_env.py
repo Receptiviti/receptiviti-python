@@ -10,7 +10,7 @@ def readin_env(path=".", name=".env", overwrite=False) -> None:
 
     Args:
       path (str): Path to a .env file, or to a directory containing such a file.
-        By default, this will fall back on `~/Documents`.
+        By default, this will fall back on `~` then `~/Documents`.
       name (str): Name of the file, when `path` points to a directory.
         By default, this will fall back on `.Renviron`.
       overwrite (bool): If `True`, overwrites existing environment variables with
@@ -30,5 +30,7 @@ def readin_env(path=".", name=".env", overwrite=False) -> None:
                     os.environ[entry[0]] = ql.sub("", entry[1])
     elif name != ".Renviron":
         readin_env(path, ".Renviron", overwrite)
-    elif path != os.path.expanduser("~/Documents"):
+    elif os.path.isfile(os.path.expanduser("~/") + name):
+        readin_env("~", name, overwrite)
+    elif os.path.isfile(os.path.expanduser("~/Documents/") + name):
         readin_env("~/Documents", name, overwrite)

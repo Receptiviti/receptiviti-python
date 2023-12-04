@@ -58,17 +58,7 @@ RECEPTIVITI_KEY="32lettersandnumbers"
 RECEPTIVITI_SECRET="56LettersAndNumbers"
 ```
 
-You can store these in a `.env` (in the current directory or `~/Documents`) file permanently:
-
-```py
-# use the `dotenv` argument
-receptiviti.status(dotenv=True)
-
-# or load variables in beforehand
-receptiviti.readin_env()
-```
-
-Or set them temporarily:
+You can store these in a `.env` (in the current directory or `~/Documents`) file permanently, or set them temporarily:
 
 ```py
 import os
