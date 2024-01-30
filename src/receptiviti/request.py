@@ -9,7 +9,7 @@ import re
 import shutil
 import sys
 from glob import glob
-from multiprocessing import Process, Queue, cpu_count
+from multiprocessing import Process, Queue, cpu_count, current_process
 from tempfile import TemporaryDirectory, gettempdir
 from time import perf_counter, sleep, time
 from typing import List, Union
@@ -177,7 +177,14 @@ def request(
         parallel if each file contains a single text (potentially collapsed from multiple lines).
         If files contain multiple texts (i.e., `collapse_lines=False`), then texts need to be
         read in before bundling in order to ensure bundles are under the length limit.
+
+        If you are calling this function from a script, parallelization will involve rerunning
+        that script in each process, so anything you don't want rerun should be protected by
+        a check that `__name__` equals `"__main__"`
+        (placed within an `if __name__ == "__main__":` clause).
     """
+    if current_process().name != "MainProcess":
+        return
     if output is not None and os.path.isfile(output) and not overwrite:
         msg = "`output` file already exists; use `overwrite=True` to overwrite it"
         raise RuntimeError(msg)
@@ -416,8 +423,6 @@ def request(
             ]
             for cl in procs:
                 cl.start()
-            for cl in procs:
-                cl.join()
             res = waiter.get()
         else:
             if verbose:
