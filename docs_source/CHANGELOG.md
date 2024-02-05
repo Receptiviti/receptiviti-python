@@ -4,7 +4,12 @@
 
 ### Improvements
 
+- Changes default number of cores to 1, to avoid unexpected behavior when running from a script.
 - Improves environment file resolution.
+
+### Bug Fixes
+
+- Avoids issues when `receptiviti.request` is called from a script and is processing in parallel.
 
 ## receptiviti 0.1.1
 

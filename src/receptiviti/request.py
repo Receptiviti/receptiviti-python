@@ -9,7 +9,7 @@ import re
 import shutil
 import sys
 from glob import glob
-from multiprocessing import Process, Queue, cpu_count, current_process
+from multiprocessing import Process, Queue, current_process
 from tempfile import TemporaryDirectory, gettempdir
 from time import perf_counter, sleep, time
 from typing import List, Union
@@ -49,7 +49,7 @@ def request(
     retry_limit=50,
     clear_cache=False,
     request_cache=True,
-    cores=cpu_count() - 2,
+    cores=1,
     in_memory: Union[bool, None] = None,
     verbose=False,
     progress_bar: Union[str, bool] = os.getenv("RECEPTIVITI_PB", "True"),
@@ -183,7 +183,7 @@ def request(
         a check that `__name__` equals `"__main__"`
         (placed within an `if __name__ == "__main__":` clause).
     """
-    if current_process().name != "MainProcess":
+    if cores > 1 and current_process().name != "MainProcess":
         return
     if output is not None and os.path.isfile(output) and not overwrite:
         msg = "`output` file already exists; use `overwrite=True` to overwrite it"
@@ -647,9 +647,11 @@ def _request(
     if retries > 0:
         cd = re.search(
             "[0-9]+(?:\\.[0-9]+)?",
-            res.json()["message"]
-            if res.headers["Content-Type"] == "application/json"
-            else res.text,
+            (
+                res.json()["message"]
+                if res.headers["Content-Type"] == "application/json"
+                else res.text
+            ),
         )
         sleep(1 if cd is None else float(cd[0]) / 1e3)
         return _request(body, url, auth, retries - 1, cache)
@@ -820,9 +822,7 @@ def _readin(
             ids += (
                 temp[id_column].to_list()
                 if id_column is not None
-                else [file]
-                if len(temp) == 1
-                else [file + str(i + 1) for i in range(len(temp))]
+                else [file] if len(temp) == 1 else [file + str(i + 1) for i in range(len(temp))]
             )
         return pandas.DataFrame({"text": text, "ids": ids})
     return text
