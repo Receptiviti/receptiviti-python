@@ -9,9 +9,10 @@
 
 ### Bug Fixes
 
+- Fixes detection of some file encodings.
 - Avoids issues when `receptiviti.request` is called from a script and is processing in parallel.
 
-## receptiviti 0.1.1
+## [receptiviti 0.1.1](https://pypi.org/project/receptiviti/0.1.1)
 
 ### Improvements
 

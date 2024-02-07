@@ -100,7 +100,7 @@ class TestRequest:
                         txt.write(text)
                     csv_file = f"{tempdir}/{nth_text}.csv"
                     csv_files.append(csv_file)
-                    pandas.DataFrame({"text": [text]}).to_csv(csv_file, encoding="utf-16")
+                    pandas.DataFrame({"text": [text]}).to_csv(csv_file, encoding="cp1252")
             res_misencode = receptiviti.request(
                 tempdir, encoding="utf-8", return_text=True, cache=cache
             )
@@ -134,6 +134,7 @@ class TestRequest:
                 text_column="texts",
                 id_column="id",
                 bundle_size=20,
+                cores=2,
                 cache=tempdir,
                 in_memory=False,
             )
@@ -142,7 +143,6 @@ class TestRequest:
                 text_column="texts",
                 id_column="id",
                 bundle_size=20,
-                cores=1,
                 cache=tempdir,
             )
         assert res_parallel["summary.word_count"].sum() == res_serial["summary.word_count"].sum()

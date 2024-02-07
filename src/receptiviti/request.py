@@ -781,7 +781,7 @@ def _readin(
         def handle_encoding(file: str):
             detect.reset()
             with open(file, "rb") as text:
-                detect.feed(text.readline(5))
+                detect.feed(text.read())
             return detect.close()["encoding"]
 
     if os.path.splitext(paths[0])[1] == ".txt" and not sel:
