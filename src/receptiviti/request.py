@@ -456,7 +456,7 @@ def request(
             res = pandas.concat([res, data_dupes])
             res.reset_index(inplace=True, drop=True)
             res.set_index("id", inplace=True)
-    res = res.join(data["text"], how="outer")
+    res = res.join(data["text"], how="right")
     if not return_text:
         res.drop("text", axis=1, inplace=True)
     res = res.reset_index()

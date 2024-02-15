@@ -9,6 +9,7 @@
 
 ### Bug Fixes
 
+- Corrects order of output when reading from a file and `ids` are not specified.
 - Fixes detection of some file encodings.
 - Avoids issues when `receptiviti.request` is called from a script and is processing in parallel.
 

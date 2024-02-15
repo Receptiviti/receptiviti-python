@@ -132,7 +132,6 @@ class TestRequest:
             res_parallel = receptiviti.request(
                 "../data.csv",
                 text_column="texts",
-                id_column="id",
                 bundle_size=20,
                 cores=2,
                 cache=tempdir,
@@ -141,10 +140,12 @@ class TestRequest:
             res_serial = receptiviti.request(
                 "../data.csv",
                 text_column="texts",
-                id_column="id",
                 bundle_size=20,
                 cache=tempdir,
             )
+        ids = ["../data.csv" + str(i + 1) for i in range(len(res_parallel))]
+        assert all(res_parallel["id"] == ids)
+        assert all(res_serial["id"] == ids)
         assert res_parallel["summary.word_count"].sum() == res_serial["summary.word_count"].sum()
 
     @pytest.mark.skipif(
