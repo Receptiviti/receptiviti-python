@@ -1,6 +1,6 @@
 # Changelog
 
-## receptiviti 0.1.2
+## [receptiviti 0.1.2](https://pypi.org/project/receptiviti/0.1.2)
 
 ### Improvements
 

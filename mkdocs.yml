@@ -61,6 +61,7 @@ nav:
   - Test Coverage: coverage/index.html
   - Versions:
       - Development: https://receptiviti.github.io/receptiviti-python/
+      - 0.1.2: https://receptiviti.github.io/receptiviti-python/v/0.1.2/
       - 0.1.1: https://receptiviti.github.io/receptiviti-python/v/0.1.1/
       - 0.1.0: https://receptiviti.github.io/receptiviti-python/v/0.1.0/
       - Changelog: CHANGELOG.md
