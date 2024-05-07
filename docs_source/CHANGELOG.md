@@ -1,5 +1,11 @@
 # Changelog
 
+## receptiviti 0.1.3
+
+### Improvements
+
+- Validates `version` and `endpoint`.
+
 ## [receptiviti 0.1.2](https://pypi.org/project/receptiviti/0.1.2)
 
 ### Improvements

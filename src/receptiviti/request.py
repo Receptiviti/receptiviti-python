@@ -216,9 +216,17 @@ def request(
         secret = os.getenv("RECEPTIVITI_SECRET", "")
     if not version:
         version = os.getenv("RECEPTIVITI_VERSION", "v1")
+    version = version.lower()
+    if not version or not re.search("^v\\d+$", version):
+        msg = f"invalid version: {version}"
+        raise RuntimeError(msg)
     if not endpoint:
         endpoint_default = "framework" if version.lower() == "v1" else "taxonomies"
         endpoint = os.getenv("RECEPTIVITI_ENDPOINT", endpoint_default)
+    endpoint = re.sub("^.*/", "", endpoint).lower()
+    if not endpoint or re.search("[^a-z]", endpoint):
+        msg = f"invalid endpoint: {endpoint}"
+        raise RuntimeError(msg)
     api_status = status(url, key, secret, dotenv, verbose=False)
     if not api_status or api_status.status_code != 200:
         msg = (

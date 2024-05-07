@@ -19,6 +19,14 @@ class TestRequest:
         with pytest.raises(RuntimeError, match="URL is not reachable"):
             receptiviti.request("a text", url=url)
 
+    def invalid_version(self):
+        with pytest.raises(RuntimeError, match="invalid version: 1"):
+            receptiviti.request("text to score", version="1")
+
+    def invalid_endpoint(self):
+        with pytest.raises(RuntimeError, match="invalid endpoint: v1"):
+            receptiviti.request("text to score", endpoint="framework/v1")
+
     def test_single_text(self):
         res = receptiviti.request("text to score")
         assert res["summary.word_count"][0] == 3
