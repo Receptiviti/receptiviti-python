@@ -789,8 +789,18 @@ def _readin(
         def handle_encoding(file: str):
             detect.reset()
             with open(file, "rb") as text:
-                detect.feed(text.read())
-            return detect.close()["encoding"]
+                while True:
+                    chunk = text.read(1024)
+                    if not chunk:
+                        break
+                    detect.feed(chunk)
+                    if detect.done:
+                        break
+            detected = detect.close()["encoding"]
+            if detected is None:
+                msg = "failed to detect encoding; please specify with the `encoding` argument"
+                raise RuntimeError(msg)
+            return detected
 
     if os.path.splitext(paths[0])[1] == ".txt" and not sel:
         if collapse_lines:
