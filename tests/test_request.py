@@ -48,15 +48,11 @@ class TestRequest:
         assert res["word_count"].to_list() == [3, 2]
 
     def test_framework_prefix(self):
-        res = receptiviti.request(
-            ["text to score", "another text"], frameworks="summary", framework_prefix=True
-        )
+        res = receptiviti.request(["text to score", "another text"], frameworks="summary", framework_prefix=True)
         assert res["summary.word_count"].to_list() == [3, 2]
 
     def test_id_text(self):
-        res = receptiviti.request(
-            ["text to score", "another text"], ids=["a", "b"], return_text=True
-        )
+        res = receptiviti.request(["text to score", "another text"], ids=["a", "b"], return_text=True)
         assert res["text"].to_list() == ["text to score", "another text"]
         assert res["id"].to_list() == ["a", "b"]
 
@@ -65,9 +61,7 @@ class TestRequest:
             receptiviti.request("text to score", frameworks=["summary", "sallee"], verbose=True)
         messages = out.getvalue().split("\n")
         expected = ["prep"] * 3 + ["requ", "done", "prep", "sele", "done", ""]
-        assert len(messages) == len(expected) and all(
-            line[:4] == expected[i] for i, line in enumerate(messages)
-        )
+        assert len(messages) == len(expected) and all(line[:4] == expected[i] for i, line in enumerate(messages))
 
     def test_cache_initialization(self):
         with TemporaryDirectory() as tempdir:
@@ -109,15 +103,11 @@ class TestRequest:
                     csv_file = f"{tempdir}/{nth_text}.csv"
                     csv_files.append(csv_file)
                     pandas.DataFrame({"text": [text]}).to_csv(csv_file, encoding="cp1252")
-            res_misencode = receptiviti.request(
-                tempdir, encoding="utf-8", return_text=True, cache=cache
-            )
+            res_misencode = receptiviti.request(tempdir, encoding="utf-8", return_text=True, cache=cache)
             res_multi = receptiviti.request(tempdir, return_text=True, cache=cache)
             res_multi_txt = receptiviti.request(txt_files, cache=cache)
             res_multi_csv = receptiviti.request(csv_files, text_column="text", cache=cache)
-            res_multi_txt_collapse = receptiviti.request(
-                txt_files, collapse_lines=True, cache=cache
-            )
+            res_multi_txt_collapse = receptiviti.request(txt_files, collapse_lines=True, cache=cache)
             res_multi_csv_collapse = receptiviti.request(
                 csv_files, text_column="text", collapse_lines=True, cache=cache
             )
@@ -125,14 +115,8 @@ class TestRequest:
         assert res_single["summary.word_count"].sum() == res_multi["summary.word_count"].sum()
         assert res_multi["summary.word_count"].sum() == res_multi_txt["summary.word_count"].sum()
         assert res_multi["summary.word_count"].sum() == res_multi_csv["summary.word_count"].sum()
-        assert (
-            res_multi["summary.word_count"].sum()
-            == res_multi_txt_collapse["summary.word_count"].sum()
-        )
-        assert (
-            res_multi["summary.word_count"].sum()
-            == res_multi_csv_collapse["summary.word_count"].sum()
-        )
+        assert res_multi["summary.word_count"].sum() == res_multi_txt_collapse["summary.word_count"].sum()
+        assert res_multi["summary.word_count"].sum() == res_multi_csv_collapse["summary.word_count"].sum()
 
     @pytest.mark.skipif(not os.path.isfile("../data.csv"), reason="no csv test file present")
     def test_from_file(self):
@@ -180,6 +164,4 @@ class TestRequest:
                 )
         messages = out.getvalue().split("\n")
         expected = ["prep"] * 3 + ["requ", "done", "clea", "addi", "prep", "done", ""]
-        assert len(messages) == len(expected) and all(
-            line[:4] == expected[i] for i, line in enumerate(messages)
-        )
+        assert len(messages) == len(expected) and all(line[:4] == expected[i] for i, line in enumerate(messages))

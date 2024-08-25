@@ -6,6 +6,10 @@
 
 - Validates `version` and `endpoint`.
 
+## Bug Fixes
+
+- Avoids overwriting existing cache results within overlapping bins on update.
+
 ## [receptiviti 0.1.2](https://pypi.org/project/receptiviti/0.1.2)
 
 ### Improvements

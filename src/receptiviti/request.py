@@ -17,9 +17,10 @@ from typing import List, Union
 import numpy
 import pandas
 import pyarrow
+import pyarrow.compute
+import pyarrow.dataset
 import requests
 from chardet.universaldetector import UniversalDetector
-from pyarrow import compute, dataset
 from tqdm import tqdm
 
 from receptiviti.readin_env import readin_env
@@ -65,7 +66,7 @@ def request(
     url=os.getenv("RECEPTIVITI_URL", ""),
     version=os.getenv("RECEPTIVITI_VERSION", ""),
     endpoint=os.getenv("RECEPTIVITI_ENDPOINT", ""),
-) -> pandas.DataFrame:
+) -> pandas.DataFrame | None:
     """
     Send texts to be scored by the API.
 
@@ -184,7 +185,7 @@ def request(
         (placed within an `if __name__ == "__main__":` clause).
     """
     if cores > 1 and current_process().name != "MainProcess":
-        return
+        return None
     if output is not None and os.path.isfile(output) and not overwrite:
         msg = "`output` file already exists; use `overwrite=True` to overwrite it"
         raise RuntimeError(msg)
@@ -207,9 +208,7 @@ def request(
             version = from_url[0]
         if not endpoint and from_url[1] is not None:
             endpoint = from_url[1]
-    url = ("https://" if re.match("http", url, re.I) is None else "") + re.sub(
-        "/+[Vv]\\d+(?:/.*)?$|/+$", "", url
-    )
+    url = ("https://" if re.match("http", url, re.I) is None else "") + re.sub("/+[Vv]\\d+(?:/.*)?$|/+$", "", url)
     if not key:
         key = os.getenv("RECEPTIVITI_KEY", "")
     if not secret:
@@ -281,9 +280,7 @@ def request(
             raise RuntimeError(msg)
     if isinstance(text, str):
         text = [text]
-    text_is_path = all(
-        isinstance(t, str) and (text_as_paths or len(t) < 260) and os.path.isfile(t) for t in text
-    )
+    text_is_path = all(isinstance(t, str) and (text_as_paths or len(t) < 260) and os.path.isfile(t) for t in text)
     if text_as_paths and not text_is_path:
         msg = "`text` treated as a list of files, but not all of the entries exist"
         raise RuntimeError(msg)
@@ -318,9 +315,7 @@ def request(
         print(f"preparing text ({perf_counter() - start_time:.4f})")
     data = pandas.DataFrame({"text": text, "id": ids})
     n_original = len(data)
-    data_subset = data[
-        ~(data.duplicated(subset=["text"]) | (data["text"] == "") | data["text"].isna())
-    ]
+    data_subset = data[~(data.duplicated(subset=["text"]) | (data["text"] == "") | data["text"].isna())]
     n_texts = len(data_subset)
     if not n_texts:
         msg = "no valid texts to process"
@@ -338,10 +333,7 @@ def request(
             for txt in group["text"]:
                 size = os.stat(txt).st_size if text_is_path else sys.getsizeof(txt)
                 if size > bundle_byte_limit:
-                    msg = (
-                        "one of your texts is over the bundle size"
-                        f" limit ({bundle_byte_limit / 1e6} MB)"
-                    )
+                    msg = f"one of your texts is over the bundle size limit ({bundle_byte_limit / 1e6} MB)"
                     raise RuntimeError(msg)
                 if (current + size) > bundle_byte_limit:
                     bundles.append(group[start:end])
@@ -556,15 +548,15 @@ def _process(
             body.append({"content": text, "request_id": text_hash, **opts["add"]})
         cached = None
         if opts["cache"] and os.path.isdir(opts["cache"] + "/bin=h"):
-            db = dataset.dataset(
+            db = pyarrow.dataset.dataset(
                 opts["cache"],
-                partitioning=dataset.partitioning(
+                partitioning=pyarrow.dataset.partitioning(
                     pyarrow.schema([pyarrow.field("bin", pyarrow.string())]), flavor="hive"
                 ),
                 format=opts["cache_format"],
             )
             if "text_hash" in db.schema.names:
-                su = db.filter(compute.field("text_hash").isin(bundle["text_hash"]))
+                su = db.filter(pyarrow.compute.field("text_hash").isin(bundle["text_hash"]))
                 if su.count_rows() > 0:
                     cached = su.to_table().to_pandas(split_blocks=True, self_destruct=True)
         res = "failed to retrieve results"
@@ -572,16 +564,14 @@ def _process(
             if cached is None or not len(cached):
                 res = _prepare_results(body, opts)
             else:
-                fresh = ~compute.is_in(
+                fresh = ~pyarrow.compute.is_in(
                     bundle["text_hash"].to_list(), pyarrow.array(cached["text_hash"])
                 ).to_pandas(split_blocks=True, self_destruct=True)
                 res = _prepare_results([body[i] for i, ck in enumerate(fresh) if ck], opts)
             if not isinstance(res, str):
                 if cached is not None:
                     if len(res) != len(cached) or not all(cached.columns.isin(res.columns)):
-                        cached = _prepare_results(
-                            [body[i] for i, ck in enumerate(fresh) if not ck], opts
-                        )
+                        cached = _prepare_results([body[i] for i, ck in enumerate(fresh) if not ck], opts)
                     res = pandas.concat([res, cached])
         else:
             res = cached
@@ -599,11 +589,7 @@ def _process(
 
 def _prepare_results(body: list, opts: dict):
     json_body = json.dumps(body, separators=(",", ":"))
-    bundle_hash = (
-        REQUEST_CACHE + hashlib.md5(json_body.encode()).hexdigest() + ".json"
-        if opts["request_cache"]
-        else ""
-    )
+    bundle_hash = REQUEST_CACHE + hashlib.md5(json_body.encode()).hexdigest() + ".json" if opts["request_cache"] else ""
     raw_res = _request(
         json_body,
         opts["url"],
@@ -655,11 +641,7 @@ def _request(
     if retries > 0:
         cd = re.search(
             "[0-9]+(?:\\.[0-9]+)?",
-            (
-                res.json()["message"]
-                if res.headers["Content-Type"] == "application/json"
-                else res.text
-            ),
+            (res.json()["message"] if res.headers["Content-Type"] == "application/json" else res.text),
         )
         sleep(1 if cd is None else float(cd[0]) / 1e3)
         return _request(body, url, auth, retries - 1, cache)
@@ -673,29 +655,32 @@ def _update_cache(
     verbose: bool,
     start_time: float,
     add_names: list,
-):
-    part: pyarrow.Partitioning = dataset.partitioning(
+) -> None:
+    part: pyarrow.dataset.Partitioning = pyarrow.dataset.partitioning(
         pyarrow.schema([pyarrow.field("bin", pyarrow.string())]), flavor="hive"
     )
     exclude = {"id", *add_names}
 
-    def initialize_cache():
-        initial = res.iloc[[0]].drop(
+    def initialize_cache() -> None:
+        initial: pandas.DataFrame = res.iloc[[0]].drop(
             exclude.intersection(res.columns),
             axis="columns",
         )
         initial["text_hash"] = ""
         initial["bin"] = "h"
-        initial.loc[
-            :,
-            ~initial.columns.isin(["summary.word_count", "summary.sentence_count"])
-            & (initial.dtypes != object).to_list(),
-        ] = 0.1
-        dataset.write_dataset(
+        int_cols = initial.columns[
+            (
+                ~initial.columns.isin(["summary.word_count", "summary.sentence_count"])
+                & (initial.dtypes != object).to_list()
+            )
+        ]
+        initial[[int_cols]] = 0.1
+        pyarrow.dataset.write_dataset(
             pyarrow.Table.from_pandas(initial),
             cache,
-            partitioning=part,
+            basename_template="0-{i}." + cache_format,
             format=cache_format,
+            partitioning=part,
             existing_data_behavior="overwrite_or_ignore",
         )
 
@@ -703,7 +688,7 @@ def _update_cache(
         if verbose:
             print(f"initializing cache ({perf_counter() - start_time:.4f})")
         initialize_cache()
-    db = dataset.dataset(cache, partitioning=part, format=cache_format)
+    db = pyarrow.dataset.dataset(cache, partitioning=part, format=cache_format)
     if any(name not in exclude and name not in db.schema.names for name in res.columns.to_list()):
         if verbose:
             print(
@@ -712,11 +697,11 @@ def _update_cache(
             )
         shutil.rmtree(cache, True)
         initialize_cache()
-        db = dataset.dataset(cache, partitioning=part, format=cache_format)
+        db = pyarrow.dataset.dataset(cache, partitioning=part, format=cache_format)
     fresh = res[~res.duplicated(subset=["text_hash"])]
-    su = db.filter(compute.field("text_hash").isin(fresh["text_hash"]))
+    su = db.filter(pyarrow.compute.field("text_hash").isin(fresh["text_hash"]))
     if su.count_rows() > 0:
-        cached = ~compute.is_in(
+        cached = ~pyarrow.compute.is_in(
             fresh["text_hash"].to_list(),
             su.scanner(columns=["text_hash"]).to_table()["text_hash"],
         ).to_pandas(split_blocks=True, self_destruct=True)
@@ -731,7 +716,7 @@ def _update_cache(
                 f"adding {n_new} result{'' if n_new == 1 else 's'}",
                 f"to cache ({perf_counter() - start_time:.4f})",
             )
-        dataset.write_dataset(
+        pyarrow.dataset.write_dataset(
             pyarrow.Table.from_pandas(
                 fresh.drop(
                     list(exclude.intersection(fresh.columns)),
@@ -739,8 +724,9 @@ def _update_cache(
                 )
             ),
             cache,
-            partitioning=part,
+            basename_template=str(math.ceil(time())) + "-{i}." + cache_format,
             format=cache_format,
+            partitioning=part,
             existing_data_behavior="overwrite_or_ignore",
         )
 
@@ -816,11 +802,7 @@ def _readin(
                 with open(file, encoding=enc, errors="ignore") as texts:
                     lines = [line.rstrip() for line in texts]
                     text += lines
-                    ids += (
-                        [file]
-                        if len(lines) == 1
-                        else [file + str(i + 1) for i in range(len(lines))]
-                    )
+                    ids += [file] if len(lines) == 1 else [file + str(i + 1) for i in range(len(lines))]
             return pandas.DataFrame({"text": text, "ids": ids})
     elif collapse_lines:
         for file in paths:

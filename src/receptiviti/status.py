@@ -43,9 +43,7 @@ def status(
         key = os.getenv("RECEPTIVITI_KEY", "")
     if not secret:
         secret = os.getenv("RECEPTIVITI_SECRET", "")
-    url = ("https://" if re.match("http", url, re.I) is None else "") + re.sub(
-        "/[Vv]\\d(?:/.*)?$|/+$", "", url
-    )
+    url = ("https://" if re.match("http", url, re.I) is None else "") + re.sub("/[Vv]\\d(?:/.*)?$|/+$", "", url)
     if re.match("https?://[^.]+[.:][^.]", url, re.I) is None:
         raise TypeError("`url` does not appear to be valid: " + url)
     try:

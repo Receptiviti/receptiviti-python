@@ -35,6 +35,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "types-requests",
+  "pyarrow-stubs",
   "mkdocs>=1.4.3",
   "mkdocstrings[python]>=0.18",
   "mkdocs-material>=9.1.15",
@@ -107,12 +108,12 @@ dependencies = [
 [tool.hatch.envs.lint.scripts]
 typing = "mypy --install-types --non-interactive {args:src/receptiviti tests}"
 style = [
-  "ruff {args:.}",
+  "ruff check {args:.}",
   "black --check --diff {args:.}",
 ]
 fmt = [
   "black {args:.}",
-  "ruff --fix {args:.}",
+  "ruff check --fix {args:.}",
   "style",
 ]
 all = [
@@ -122,12 +123,12 @@ all = [
 
 [tool.black]
 target-version = ["py37"]
-line-length = 100
+line-length = 120
 
 [tool.ruff]
 target-version = "py37"
-line-length = 100
-select = [
+line-length = 120
+lint.select = [
   "A",
   "ARG",
   "B",
@@ -154,7 +155,7 @@ select = [
   "W",
   "YTT",
 ]
-ignore = [
+lint.ignore = [
   # Allow non-abstract empty methods in abstract base classes
   "B027",
   # Allow boolean positional values in function calls, like `dict.get(... True)`
@@ -176,21 +177,23 @@ ignore = [
   # Allow MD5s
   "S324",
   # Allow pickle
-  "S301"
+  "S301",
+  # Allow enquoted types
+  "UP037"
 ]
-unfixable = [
+lint.unfixable = [
   # Don't touch unused imports
   "F401",
 ]
 exclude = ["src/receptiviti/__init__.py"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["receptiviti"]
 
-[tool.ruff.flake8-tidy-imports]
+[tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 # Tests can use magic values, assertions, and relative imports
 "tests/**/*" = ["PLR2004", "S101", "TID252"]
 
