@@ -19,16 +19,26 @@ class TestRequest:
         with pytest.raises(RuntimeError, match="URL is not reachable"):
             receptiviti.request("a text", url=url)
 
-    def invalid_version(self):
+    def test_invalid_version(self):
         with pytest.raises(RuntimeError, match="invalid version: 1"):
             receptiviti.request("text to score", version="1")
 
-    def invalid_endpoint(self):
+    def test_invalid_endpoint(self):
         with pytest.raises(RuntimeError, match="invalid endpoint: v1"):
             receptiviti.request("text to score", endpoint="framework/v1")
 
+    def test_invalid_api_args(self):
+        with pytest.raises(RuntimeError, match="only one of"):
+            receptiviti.request(
+                "text to score", version="v2", api_args={"context": "default", "custom_context": "custom"}
+            )
+
     def test_single_text(self):
         res = receptiviti.request("text to score")
+        assert res["summary.word_count"][0] == 3
+
+    def test_single_text_v2(self):
+        res = receptiviti.request("text to score", version="v2")
         assert res["summary.word_count"][0] == 3
 
     def test_invalid_text(self):
@@ -140,25 +150,13 @@ class TestRequest:
         assert all(res_serial["id"] == ids)
         assert res_parallel["summary.word_count"].sum() == res_serial["summary.word_count"].sum()
 
-    @pytest.mark.skipif(
-        receptiviti.status(os.getenv("RECEPTIVITI_URL_TEST", "")) is None,
-        reason="test API is not reachable",
-    )
     def test_endpoint_version(self):
         with TemporaryDirectory() as tempdir:
-            receptiviti.request(
-                "text to process",
-                url=os.getenv("RECEPTIVITI_URL_TEST"),
-                key=os.getenv("RECEPTIVITI_KEY_TEST"),
-                secret=os.getenv("RECEPTIVITI_SECRET_TEST"),
-                cache=tempdir,
-            )
+            receptiviti.request("text to process", cache=tempdir)
             with redirect_stdout(StringIO()) as out:
                 receptiviti.request(
                     "text to process",
-                    url=os.getenv("RECEPTIVITI_URL_TEST") + "v2/taxonomies",
-                    key=os.getenv("RECEPTIVITI_KEY_TEST"),
-                    secret=os.getenv("RECEPTIVITI_SECRET_TEST"),
+                    url=os.getenv("RECEPTIVITI_URL") + "v2/analyze",
                     cache=tempdir,
                     verbose=True,
                 )

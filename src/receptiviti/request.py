@@ -8,6 +8,7 @@ import pickle
 import re
 import shutil
 import sys
+import urllib.parse
 from glob import glob
 from multiprocessing import Process, Queue, current_process
 from tempfile import TemporaryDirectory, gettempdir
@@ -220,12 +221,16 @@ def request(
         msg = f"invalid version: {version}"
         raise RuntimeError(msg)
     if not endpoint:
-        endpoint_default = "framework" if version.lower() == "v1" else "taxonomies"
+        endpoint_default = "framework" if version == "v1" else "analyze"
         endpoint = os.getenv("RECEPTIVITI_ENDPOINT", endpoint_default)
     endpoint = re.sub("^.*/", "", endpoint).lower()
     if not endpoint or re.search("[^a-z]", endpoint):
         msg = f"invalid endpoint: {endpoint}"
         raise RuntimeError(msg)
+    if version != "v1" and api_args:
+        if "context" in api_args and "custom_context" in api_args:
+            msg = "only one of `context` or `custom_context` may be specified"
+            raise RuntimeError(msg)
     api_status = status(url, key, secret, dotenv, verbose=False)
     if not api_status or api_status.status_code != 200:
         msg = (
@@ -364,7 +369,8 @@ def request(
         else:
             cache = False
     opts = {
-        "url": f"{url}/{version}/{endpoint}/bulk".lower(),
+        "url": (f"{url}/{version}/{endpoint}/bulk" if version == "v1" else f"{url}/{version}/{endpoint}").lower(),
+        "version": version,
         "auth": requests.auth.HTTPBasicAuth(key, secret),
         "retries": retry_limit,
         "add": {} if api_args is None else api_args,
@@ -378,6 +384,8 @@ def request(
         "collapse_lines": collapse_lines,
         "encoding": encoding,
     }
+    if version != "v1" and api_args:
+        opts["url"] += "?" + urllib.parse.urlencode(api_args)
     opts["add_hash"] = hashlib.md5(
         json.dumps(
             {**opts["add"], "url": opts["url"], "key": key, "secret": secret},
@@ -545,7 +553,10 @@ def _process(
         for i, text in enumerate(bundle["text"]):
             text_hash = hashlib.md5((opts["add_hash"] + text).encode()).hexdigest()
             bundle.iat[i, 0] = text_hash
-            body.append({"content": text, "request_id": text_hash, **opts["add"]})
+            if opts["version"] == "v1":
+                body.append({"content": text, "request_id": text_hash, **opts["add"]})
+            else:
+                body.append({"text": text, "request_id": text_hash})
         cached = None
         if opts["cache"] and os.path.isdir(opts["cache"] + "/bin=h"):
             db = pyarrow.dataset.dataset(
