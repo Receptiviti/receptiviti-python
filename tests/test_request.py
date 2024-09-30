@@ -11,6 +11,13 @@ import receptiviti
 receptiviti.readin_env()
 
 
+def test_invalid_inputs():
+    with pytest.raises(RuntimeError, match="enter text"):
+        receptiviti.request()
+    with pytest.raises(RuntimeError, match="Unauthorized"):
+        receptiviti.request("a text", key="123", secret="123")
+
+
 @pytest.mark.skipif(os.getenv("RECEPTIVITI_KEY") is None, reason="no API key")
 class TestRequest:
     def test_unreachable(self):

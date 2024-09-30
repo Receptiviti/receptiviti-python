@@ -1,31 +1,21 @@
 """Make requests to the API."""
 
-import hashlib
-import json
 import math
 import os
-import pickle
 import re
 import shutil
-import sys
-import urllib.parse
-from glob import glob
-from multiprocessing import Process, Queue, current_process
-from tempfile import TemporaryDirectory, gettempdir
-from time import perf_counter, sleep, time
+from multiprocessing import current_process
+from tempfile import gettempdir
+from time import perf_counter, time
 from typing import List, Union
 
-import numpy
 import pandas
 import pyarrow
 import pyarrow.compute
 import pyarrow.dataset
-import requests
-from chardet.universaldetector import UniversalDetector
-from tqdm import tqdm
 
-from receptiviti.readin_env import readin_env
-from receptiviti.status import status
+from receptiviti.manage_request import _manage_request
+from receptiviti.norming import norming
 
 CACHE = gettempdir() + "/receptiviti_cache/"
 REQUEST_CACHE = gettempdir() + "/receptiviti_request_cache/"
@@ -192,173 +182,22 @@ def request(
         raise RuntimeError(msg)
     start_time = perf_counter()
 
-    if request_cache:
-        if verbose:
-            print(f"preparing request cache ({perf_counter() - start_time:.4f})")
-        _manage_request_cache()
-
-    # resolve credentials and check status
-    if dotenv:
-        readin_env("." if isinstance(dotenv, bool) else dotenv)
-    if not url:
-        url = os.getenv("RECEPTIVITI_URL", "https://api.receptiviti.com")
-    url_parts = re.search("/([Vv]\\d+)/?([^/]+)?", url)
-    if url_parts:
-        from_url = url_parts.groups()
-        if not version and from_url[0] is not None:
-            version = from_url[0]
-        if not endpoint and from_url[1] is not None:
-            endpoint = from_url[1]
-    url = ("https://" if re.match("http", url, re.I) is None else "") + re.sub("/+[Vv]\\d+(?:/.*)?$|/+$", "", url)
-    if not key:
-        key = os.getenv("RECEPTIVITI_KEY", "")
-    if not secret:
-        secret = os.getenv("RECEPTIVITI_SECRET", "")
-    if not version:
-        version = os.getenv("RECEPTIVITI_VERSION", "v1")
-    version = version.lower()
-    if not version or not re.search("^v\\d+$", version):
-        msg = f"invalid version: {version}"
-        raise RuntimeError(msg)
-    if not endpoint:
-        endpoint_default = "framework" if version == "v1" else "analyze"
-        endpoint = os.getenv("RECEPTIVITI_ENDPOINT", endpoint_default)
-    endpoint = re.sub("^.*/", "", endpoint).lower()
-    if not endpoint or re.search("[^a-z]", endpoint):
-        msg = f"invalid endpoint: {endpoint}"
-        raise RuntimeError(msg)
-    if version != "v1" and api_args:
-        if "context" in api_args and "custom_context" in api_args:
+    # check norming context status
+    if api_args and "custom_context" in api_args:
+        if "context" in api_args:
             msg = "only one of `context` or `custom_context` may be specified"
             raise RuntimeError(msg)
-    api_status = status(url, key, secret, dotenv, verbose=False)
-    if not api_status or api_status.status_code != 200:
-        msg = (
-            f"API status failed: {api_status.status_code}: {api_status.reason}"
-            if api_status
-            else "URL is not reachable"
-        )
-        raise RuntimeError(msg)
-
-    # resolve text and ids
-    text_as_dir = False
-    if text is None:
-        if directory is not None:
-            text = directory
-            text_as_dir = True
-        elif files is not None:
-            text_as_paths = True
-            text = files
-        else:
-            msg = "enter text as the first argument, or use the `files` or `directory` arguments"
+        if verbose:
+            print(f"retrieving custom norming list ({perf_counter() - start_time:.4f})")
+        norming_status: pandas.DataFrame = norming(url=url, key=key, secret=secret, verbose=False)
+        if len(norming_status) == 0 or api_args["custom_context"] not in norming_status["name"].values:
+            msg = f"custom norming context {api_args['custom_context']} is not on record"
             raise RuntimeError(msg)
-    if isinstance(text, str) and (text_as_dir or text_as_paths or len(text) < 260):
-        if not text_as_dir and os.path.isfile(text):
-            if verbose:
-                print(f"reading in texts from a file ({perf_counter() - start_time:.4f})")
-            text = _readin([text], text_column, id_column, collapse_lines, encoding)
-            if isinstance(text, pandas.DataFrame):
-                id_column = "ids"
-                text_column = "text"
-            text_as_paths = False
-        elif os.path.isdir(text):
-            text = glob(f"{text}/*{file_type}")
-            text_as_paths = True
-        elif os.path.isdir(os.path.dirname(text)):
-            msg = f"`text` appears to point to a directory, but it does not exist: {text}"
+        norming_status = norming_status[norming_status["name"] == api_args["custom_context"]]
+        if norming_status.iloc[0]["status"] != "completed":
+            msg = f"custom norming context {api_args['custom_context']} has not been completed"
             raise RuntimeError(msg)
-    if isinstance(text, pandas.DataFrame):
-        if id_column is not None:
-            if id_column in text:
-                ids = text[id_column].to_list()
-            else:
-                msg = f"`id_column` ({id_column}) is not in `text`"
-                raise IndexError(msg)
-        if text_column is not None:
-            if text_column in text:
-                text = text[text_column].to_list()
-            else:
-                msg = f"`text_column` ({text_column}) is not in `text`"
-                raise IndexError(msg)
-        else:
-            msg = "`text` is a DataFrame, but no `text_column` is specified"
-            raise RuntimeError(msg)
-    if isinstance(text, str):
-        text = [text]
-    text_is_path = all(isinstance(t, str) and (text_as_paths or len(t) < 260) and os.path.isfile(t) for t in text)
-    if text_as_paths and not text_is_path:
-        msg = "`text` treated as a list of files, but not all of the entries exist"
-        raise RuntimeError(msg)
-    if text_is_path and not collapse_lines:
-        ids = text
-        text = _readin(text, text_column, id_column, collapse_lines, encoding)
-        if isinstance(text, pandas.DataFrame):
-            if id_column is None:
-                ids = text["ids"].to_list()
-            elif id_column in text:
-                ids = text[id_column].to_list()
-            if text_column is None:
-                text_column = "text"
-            text = text[text_column].to_list()
-        text_is_path = False
-    if ids is None and text_is_path:
-        ids = text
 
-    id_specified = ids is not None
-    if ids is None:
-        ids = numpy.arange(1, len(text) + 1).tolist()
-    elif len(ids) != len(text):
-        msg = "`ids` is not the same length as `text`"
-        raise RuntimeError(msg)
-    original_ids = set(ids)
-    if len(ids) != len(original_ids):
-        msg = "`ids` contains duplicates"
-        raise RuntimeError(msg)
-
-    # prepare bundles
-    if verbose:
-        print(f"preparing text ({perf_counter() - start_time:.4f})")
-    data = pandas.DataFrame({"text": text, "id": ids})
-    n_original = len(data)
-    data_subset = data[~(data.duplicated(subset=["text"]) | (data["text"] == "") | data["text"].isna())]
-    n_texts = len(data_subset)
-    if not n_texts:
-        msg = "no valid texts to process"
-        raise RuntimeError(msg)
-    bundle_size = max(1, bundle_size)
-    n_bundles = math.ceil(n_texts / min(1000, bundle_size))
-    groups = data_subset.groupby(
-        numpy.sort(numpy.tile(numpy.arange(n_bundles) + 1, bundle_size))[:n_texts],
-        group_keys=False,
-    )
-    bundles = []
-    for _, group in groups:
-        if sys.getsizeof(group) > bundle_byte_limit:
-            start = current = end = 0
-            for txt in group["text"]:
-                size = os.stat(txt).st_size if text_is_path else sys.getsizeof(txt)
-                if size > bundle_byte_limit:
-                    msg = f"one of your texts is over the bundle size limit ({bundle_byte_limit / 1e6} MB)"
-                    raise RuntimeError(msg)
-                if (current + size) > bundle_byte_limit:
-                    bundles.append(group[start:end])
-                    start = end = end + 1
-                    current = size
-                else:
-                    end += 1
-                    current += size
-            bundles.append(group[start:])
-        else:
-            bundles.append(group)
-    n_bundles = len(bundles)
-    if verbose:
-        print(
-            f"prepared {n_texts} unique text{'s' if n_texts > 1 else ''} in "
-            f"{n_bundles} {'bundles' if n_bundles > 1 else 'bundle'}",
-            f"({perf_counter() - start_time:.4f})",
-        )
-
-    # process bundles
     if isinstance(cache, str):
         if cache:
             if clear_cache and os.path.exists(cache):
@@ -368,91 +207,50 @@ def request(
                 cache_format = os.getenv("RECEPTIVITI_CACHE_FORMAT", "parquet")
         else:
             cache = False
-    opts = {
-        "url": (f"{url}/{version}/{endpoint}/bulk" if version == "v1" else f"{url}/{version}/{endpoint}").lower(),
-        "version": version,
-        "auth": requests.auth.HTTPBasicAuth(key, secret),
-        "retries": retry_limit,
-        "add": {} if api_args is None else api_args,
-        "request_cache": request_cache,
-        "cache": "" if cache_overwrite or isinstance(cache, bool) and not cache else cache,
-        "cache_format": cache_format,
-        "make_request": make_request,
-        "text_is_path": text_is_path,
-        "text_column": text_column,
-        "id_column": id_column,
-        "collapse_lines": collapse_lines,
-        "encoding": encoding,
-    }
-    if version != "v1" and api_args:
-        opts["url"] += "?" + urllib.parse.urlencode(api_args)
-    opts["add_hash"] = hashlib.md5(
-        json.dumps(
-            {**opts["add"], "url": opts["url"], "key": key, "secret": secret},
-            separators=(",", ":"),
-        ).encode()
-    ).hexdigest()
-    if isinstance(progress_bar, str):
-        progress_bar = progress_bar == "True"
-    use_pb = (verbose and progress_bar) or progress_bar
-    parallel = n_bundles > 1 and cores > 1
-    if in_memory is None:
-        in_memory = not parallel
-    with TemporaryDirectory() as scratch_cache:
-        if not in_memory:
-            if verbose:
-                print(f"writing to scratch cache ({perf_counter() - start_time:.4f})")
 
-            def write_to_scratch(i: int, bundle: pandas.DataFrame):
-                temp = f"{scratch_cache}/{i}.json"
-                with open(temp, "wb") as scratch:
-                    pickle.dump(bundle, scratch)
-                return temp
-
-            bundles = [write_to_scratch(i, b) for i, b in enumerate(bundles)]
-        if parallel:
-            if verbose:
-                print(f"requesting in parallel ({perf_counter() - start_time:.4f})")
-            waiter: "Queue[pandas.DataFrame]" = Queue()
-            queue: "Queue[tuple[int, pandas.DataFrame]]" = Queue()
-            manager = Process(
-                target=_queue_manager,
-                args=(queue, waiter, n_texts, n_bundles, use_pb, verbose),
-            )
-            manager.start()
-            nb = math.ceil(n_bundles / min(n_bundles, cores))
-            cores = math.ceil(n_bundles / nb)
-            procs = [
-                Process(
-                    target=_process,
-                    args=(bundles[(i * nb) : min(n_bundles, (i + 1) * nb)], opts, queue),
-                )
-                for i in range(cores)
-            ]
-            for cl in procs:
-                cl.start()
-            res = waiter.get()
-        else:
-            if verbose:
-                print(f"requesting serially ({perf_counter() - start_time:.4f})")
-            pb = tqdm(total=n_texts, leave=verbose) if use_pb else None
-            res = _process(bundles, opts, pb=pb)
-            if pb is not None:
-                pb.close()
-    if verbose:
-        print(f"done requesting ({perf_counter() - start_time:.4f})")
+    data, res, id_specified = _manage_request(
+        text=text,
+        ids=ids,
+        text_column=text_column,
+        id_column=id_column,
+        files=files,
+        directory=directory,
+        file_type=file_type,
+        encoding=encoding,
+        api_args=api_args,
+        bundle_size=bundle_size,
+        bundle_byte_limit=bundle_byte_limit,
+        collapse_lines=collapse_lines,
+        retry_limit=retry_limit,
+        request_cache=request_cache,
+        cores=cores,
+        in_memory=in_memory,
+        verbose=verbose,
+        progress_bar=progress_bar,
+        make_request=make_request,
+        text_as_paths=text_as_paths,
+        dotenv=dotenv,
+        cache=cache,
+        cache_overwrite=cache_overwrite,
+        cache_format=cache_format,
+        key=key,
+        secret=secret,
+        url=url,
+        version=version,
+        endpoint=endpoint,
+    )
 
     # finalize
-    if not res.shape[0]:
+    if res is None or not res.shape[0]:
         msg = "no results"
         raise RuntimeError(msg)
     if isinstance(cache, str):
-        _update_cache(res, cache, cache_format, verbose, start_time, [e[0] for e in opts["add"]])
+        _update_cache(res, cache, cache_format, verbose, start_time, [e[0] for e in api_args] if api_args else [])
     if verbose:
         print(f"preparing output ({perf_counter() - start_time:.4f})")
     data.set_index("id", inplace=True)
     res.set_index("id", inplace=True)
-    if len(res) != n_original:
+    if len(res) != len(data):
         res = res.join(data["text"])
         data_absent = data.loc[list(set(data.index).difference(res.index))]
         data_absent = data_absent.loc[data_absent["text"].isin(res["text"])]
@@ -506,159 +304,6 @@ def request(
     return res
 
 
-def _queue_manager(
-    queue: "Queue[tuple[int, Union[pandas.DataFrame, None]]]",
-    waiter: "Queue[pandas.DataFrame]",
-    n_texts: int,
-    n_bundles: int,
-    use_pb=True,
-    verbose=False,
-):
-    if use_pb:
-        pb = tqdm(total=n_texts, leave=verbose)
-    res: List[pandas.DataFrame] = []
-    for size, chunk in iter(queue.get, None):
-        if isinstance(chunk, pandas.DataFrame):
-            if use_pb:
-                pb.update(size)
-            res.append(chunk)
-            if len(res) >= n_bundles:
-                break
-        else:
-            break
-    waiter.put(pandas.concat(res, ignore_index=True, sort=False))
-
-
-def _process(
-    bundles: list,
-    opts: dict,
-    queue: Union["Queue[tuple[int, Union[pandas.DataFrame, None]]]", None] = None,
-    pb: Union[tqdm, None] = None,
-) -> pandas.DataFrame:
-    reses: List[pandas.DataFrame] = []
-    for bundle in bundles:
-        if isinstance(bundle, str):
-            with open(bundle, "rb") as scratch:
-                bundle = pickle.load(scratch)
-        body = []
-        bundle.insert(0, "text_hash", "")
-        if opts["text_is_path"]:
-            bundle["text"] = _readin(
-                bundle["text"],
-                opts["text_column"],
-                opts["id_column"],
-                opts["collapse_lines"],
-                opts["encoding"],
-            )
-        for i, text in enumerate(bundle["text"]):
-            text_hash = hashlib.md5((opts["add_hash"] + text).encode()).hexdigest()
-            bundle.iat[i, 0] = text_hash
-            if opts["version"] == "v1":
-                body.append({"content": text, "request_id": text_hash, **opts["add"]})
-            else:
-                body.append({"text": text, "request_id": text_hash})
-        cached = None
-        if opts["cache"] and os.path.isdir(opts["cache"] + "/bin=h"):
-            db = pyarrow.dataset.dataset(
-                opts["cache"],
-                partitioning=pyarrow.dataset.partitioning(
-                    pyarrow.schema([pyarrow.field("bin", pyarrow.string())]), flavor="hive"
-                ),
-                format=opts["cache_format"],
-            )
-            if "text_hash" in db.schema.names:
-                su = db.filter(pyarrow.compute.field("text_hash").isin(bundle["text_hash"]))
-                if su.count_rows() > 0:
-                    cached = su.to_table().to_pandas(split_blocks=True, self_destruct=True)
-        res = "failed to retrieve results"
-        if cached is None or len(cached) < len(bundle):
-            if cached is None or not len(cached):
-                res = _prepare_results(body, opts)
-            else:
-                fresh = ~pyarrow.compute.is_in(
-                    bundle["text_hash"].to_list(), pyarrow.array(cached["text_hash"])
-                ).to_pandas(split_blocks=True, self_destruct=True)
-                res = _prepare_results([body[i] for i, ck in enumerate(fresh) if ck], opts)
-            if not isinstance(res, str):
-                if cached is not None:
-                    if len(res) != len(cached) or not all(cached.columns.isin(res.columns)):
-                        cached = _prepare_results([body[i] for i, ck in enumerate(fresh) if not ck], opts)
-                    res = pandas.concat([res, cached])
-        else:
-            res = cached
-        if not isinstance(res, str):
-            res = res.merge(bundle.loc[:, ["text_hash", "id"]], on="text_hash")
-            reses.append(res)
-        if queue is not None:
-            queue.put((0, None) if isinstance(res, str) else (len(res), res))
-        elif pb is not None:
-            pb.update(len(bundle))
-        if isinstance(res, str):
-            raise RuntimeError(res)
-    return reses[0] if len(reses) == 1 else pandas.concat(reses, ignore_index=True, sort=False)
-
-
-def _prepare_results(body: list, opts: dict):
-    json_body = json.dumps(body, separators=(",", ":"))
-    bundle_hash = REQUEST_CACHE + hashlib.md5(json_body.encode()).hexdigest() + ".json" if opts["request_cache"] else ""
-    raw_res = _request(
-        json_body,
-        opts["url"],
-        opts["auth"],
-        opts["retries"],
-        bundle_hash,
-        opts["make_request"],
-    )
-    if isinstance(raw_res, str):
-        return raw_res
-    res = pandas.json_normalize(raw_res)
-    res.rename(columns={"request_id": "text_hash"}, inplace=True)
-    if "text_hash" not in res:
-        res.insert(0, "text_hash", [text["request_id"] for text in body])
-    res.drop(
-        list({"response_id", "language", "version", "error"}.intersection(res.columns)),
-        axis="columns",
-        inplace=True,
-    )
-    res.insert(res.shape[1], "bin", ["h" + h[0] for h in res["text_hash"]])
-    return res
-
-
-def _request(
-    body: str,
-    url: str,
-    auth: requests.auth.HTTPBasicAuth,
-    retries: int,
-    cache="",
-    execute=True,
-) -> Union[dict, str]:
-    if not os.path.isfile(cache):
-        if not execute:
-            return "`make_request` is `False`, but there are texts with no cached results"
-        res = requests.post(url, body, auth=auth, timeout=9999)
-        if cache and res.status_code == 200:
-            with open(cache, "w", encoding="utf-8") as response:
-                json.dump(res.json(), response)
-    else:
-        with open(cache, encoding="utf-8") as response:
-            data = json.load(response)
-            return data["results"] if "results" in data else data
-    if res.status_code == 200:
-        data = res.json()
-        data = dict(data[0] if isinstance(data, list) else data)
-        return data["results"] if "results" in data else data
-    if os.path.isfile(cache):
-        os.remove(cache)
-    if retries > 0:
-        cd = re.search(
-            "[0-9]+(?:\\.[0-9]+)?",
-            (res.json()["message"] if res.headers["Content-Type"] == "application/json" else res.text),
-        )
-        sleep(1 if cd is None else float(cd[0]) / 1e3)
-        return _request(body, url, auth, retries - 1, cache)
-    return f"request failed, and have no retries: {res.status_code}: {res.reason}"
-
-
 def _update_cache(
     res: pandas.DataFrame,
     cache: str,
@@ -674,7 +319,7 @@ def _update_cache(
 
     def initialize_cache() -> None:
         initial: pandas.DataFrame = res.iloc[[0]].drop(
-            exclude.intersection(res.columns),
+            pandas.Index(exclude.intersection(res.columns)),
             axis="columns",
         )
         initial["text_hash"] = ""
@@ -700,7 +345,7 @@ def _update_cache(
             print(f"initializing cache ({perf_counter() - start_time:.4f})")
         initialize_cache()
     db = pyarrow.dataset.dataset(cache, partitioning=part, format=cache_format)
-    if any(name not in exclude and name not in db.schema.names for name in res.columns.to_list()):
+    if any(name not in exclude and name not in db.schema.names for name in res.columns.values):
         if verbose:
             print(
                 "clearing cache since it contains columns not in new results",
@@ -740,100 +385,3 @@ def _update_cache(
             partitioning=part,
             existing_data_behavior="overwrite_or_ignore",
         )
-
-
-def _manage_request_cache():
-    os.makedirs(REQUEST_CACHE, exist_ok=True)
-    try:
-        refreshed = time()
-        log_file = REQUEST_CACHE + "log.txt"
-        if os.path.exists(log_file):
-            with open(log_file, encoding="utf-8") as log:
-                logged = log.readline()
-                if isinstance(logged, list):
-                    logged = logged[0]
-                refreshed = float(logged)
-        else:
-            with open(log_file, "w", encoding="utf-8") as log:
-                log.write(str(time()))
-        if time() - refreshed > 86400:
-            for cached_request in glob(REQUEST_CACHE + "*.json"):
-                os.remove(cached_request)
-    except Exception as exc:
-        msg = "failed to manage request cache"
-        raise RuntimeWarning(msg) from exc
-
-
-def _readin(
-    paths: List[str],
-    text_column: Union[str, None],
-    id_column: Union[str, None],
-    collapse_lines: bool,
-    encoding: Union[str, None],
-) -> Union[List[str], pandas.DataFrame]:
-    text = []
-    ids = []
-    sel = []
-    if text_column is not None:
-        sel.append(text_column)
-    if id_column is not None:
-        sel.append(id_column)
-    enc = encoding
-    predict_encoding = enc is None
-    if predict_encoding:
-        detect = UniversalDetector()
-
-        def handle_encoding(file: str):
-            detect.reset()
-            with open(file, "rb") as text:
-                while True:
-                    chunk = text.read(1024)
-                    if not chunk:
-                        break
-                    detect.feed(chunk)
-                    if detect.done:
-                        break
-            detected = detect.close()["encoding"]
-            if detected is None:
-                msg = "failed to detect encoding; please specify with the `encoding` argument"
-                raise RuntimeError(msg)
-            return detected
-
-    if os.path.splitext(paths[0])[1] == ".txt" and not sel:
-        if collapse_lines:
-            for file in paths:
-                if predict_encoding:
-                    enc = handle_encoding(file)
-                with open(file, encoding=enc, errors="ignore") as texts:
-                    text.append(" ".join([line.rstrip() for line in texts]))
-        else:
-            for file in paths:
-                if predict_encoding:
-                    enc = handle_encoding(file)
-                with open(file, encoding=enc, errors="ignore") as texts:
-                    lines = [line.rstrip() for line in texts]
-                    text += lines
-                    ids += [file] if len(lines) == 1 else [file + str(i + 1) for i in range(len(lines))]
-            return pandas.DataFrame({"text": text, "ids": ids})
-    elif collapse_lines:
-        for file in paths:
-            if predict_encoding:
-                enc = handle_encoding(file)
-            temp = pandas.read_csv(file, encoding=enc, usecols=sel)
-            text.append(" ".join(temp[text_column]))
-    else:
-        for file in paths:
-            if predict_encoding:
-                enc = handle_encoding(file)
-            temp = pandas.read_csv(file, encoding=enc, usecols=sel)
-            if text_column not in temp:
-                msg = f"`text_column` ({text_column}) was not found in all files"
-                raise IndexError(msg)
-            text += temp[text_column].to_list()
-            ids += (
-                temp[id_column].to_list()
-                if id_column is not None
-                else [file] if len(temp) == 1 else [file + str(i + 1) for i in range(len(temp))]
-            )
-        return pandas.DataFrame({"text": text, "ids": ids})
-    return text

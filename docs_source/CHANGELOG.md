@@ -2,6 +2,11 @@
 
 ## receptiviti 0.1.3
 
+### Additions
+
+- Adds support for V2 of the API.
+- Adds custom norming context creation functionality.
+
 ### Improvements
 
 - Validates `version` and `endpoint`.

@@ -7,5 +7,6 @@
   "files.watcherExclude": {
     "**/target": true
   },
-  "pylint.args": ["--max-line-length=120"]
+  "pylint.args": ["--max-line-length=120"],
+  "python.REPL.enableREPLSmartSend": false
 }
