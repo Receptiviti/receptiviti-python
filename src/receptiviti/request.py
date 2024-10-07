@@ -119,6 +119,18 @@ def request(
     Returns:
         Scores associated with each input text.
 
+    Examples:
+        Score a single text
+        >>> single = receptiviti.request("a text to score")
+
+        Score multiple texts, and write results to a file
+        >>> multi = receptiviti.request(["first text to score", "second text"], "filename.csv")
+
+        Score many texts in separate files
+        >>> file_results = receptiviti.request(
+        >>>     directory="./path/to/csv_folder", text_column="text", file_type="csv"
+        >>> )
+
     Cache:
         If `cache` is specified, results for unique texts are saved in an Arrow database
         in the cache location (`os.getenv("RECEPTIVITI_CACHE")`), and are retrieved with

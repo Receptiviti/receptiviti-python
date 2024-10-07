@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Coverage for src/receptiviti/manage_request.py: 80%</title>
+    <title>Coverage for src/receptiviti/manage_request.py: 81%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_58284776.png">
     <link rel="stylesheet" href="style_cb_718ce007.css" type="text/css">
     <script src="coverage_html_cb_497bf287.js" defer></script>
@@ -12,7 +12,7 @@
     <div class="content">
         <h1>
             <span class="text">Coverage for </span><b>src/receptiviti/manage_request.py</b>:
-            <span class="pc_cov">80%</span>
+            <span class="pc_cov">81%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
@@ -55,8 +55,8 @@
         </aside>
         <h2>
             <span class="text">393 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">315<span class="text"> run</span></button>
-            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">78<span class="text"> missing</span></button>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">318<span class="text"> run</span></button>
+            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">75<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
         <p class="text">
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_4909b636852450bb_norming_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.1">coverage.py v7.6.1</a>,
-            created at 2024-09-30 12:52 -0400
+            created at 2024-10-07 15:53 -0400
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -548,9 +548,9 @@
     <p class="run"><span class="n"><a id="t466" href="#t466">466</a></span><span class="t">            <span class="key">with</span> <span class="nam">open</span><span class="op">(</span><span class="nam">cache</span><span class="op">,</span> <span class="str">"w"</span><span class="op">,</span> <span class="nam">encoding</span><span class="op">=</span><span class="str">"utf-8"</span><span class="op">)</span> <span class="key">as</span> <span class="nam">response</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t467" href="#t467">467</a></span><span class="t">                <span class="nam">json</span><span class="op">.</span><span class="nam">dump</span><span class="op">(</span><span class="nam">res</span><span class="op">.</span><span class="nam">json</span><span class="op">(</span><span class="op">)</span><span class="op">,</span> <span class="nam">response</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t468" href="#t468">468</a></span><span class="t">    <span class="key">else</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t469" href="#t469">469</a></span><span class="t">        <span class="key">with</span> <span class="nam">open</span><span class="op">(</span><span class="nam">cache</span><span class="op">,</span> <span class="nam">encoding</span><span class="op">=</span><span class="str">"utf-8"</span><span class="op">)</span> <span class="key">as</span> <span class="nam">response</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t470" href="#t470">470</a></span><span class="t">            <span class="nam">data</span> <span class="op">=</span> <span class="nam">json</span><span class="op">.</span><span class="nam">load</span><span class="op">(</span><span class="nam">response</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t471" href="#t471">471</a></span><span class="t">            <span class="key">return</span> <span class="nam">data</span><span class="op">[</span><span class="str">"results"</span><span class="op">]</span> <span class="key">if</span> <span class="str">"results"</span> <span class="key">in</span> <span class="nam">data</span> <span class="key">else</span> <span class="nam">data</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t469" href="#t469">469</a></span><span class="t">        <span class="key">with</span> <span class="nam">open</span><span class="op">(</span><span class="nam">cache</span><span class="op">,</span> <span class="nam">encoding</span><span class="op">=</span><span class="str">"utf-8"</span><span class="op">)</span> <span class="key">as</span> <span class="nam">response</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t470" href="#t470">470</a></span><span class="t">            <span class="nam">data</span> <span class="op">=</span> <span class="nam">json</span><span class="op">.</span><span class="nam">load</span><span class="op">(</span><span class="nam">response</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t471" href="#t471">471</a></span><span class="t">            <span class="key">return</span> <span class="nam">data</span><span class="op">[</span><span class="str">"results"</span><span class="op">]</span> <span class="key">if</span> <span class="str">"results"</span> <span class="key">in</span> <span class="nam">data</span> <span class="key">else</span> <span class="nam">data</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t472" href="#t472">472</a></span><span class="t">    <span class="nam">data</span> <span class="op">=</span> <span class="nam">res</span><span class="op">.</span><span class="nam">json</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t473" href="#t473">473</a></span><span class="t">    <span class="key">if</span> <span class="nam">res</span><span class="op">.</span><span class="nam">status_code</span> <span class="op">==</span> <span class="num">200</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t474" href="#t474">474</a></span><span class="t">        <span class="nam">data</span> <span class="op">=</span> <span class="nam">dict</span><span class="op">(</span><span class="nam">data</span><span class="op">[</span><span class="num">0</span><span class="op">]</span> <span class="key">if</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">data</span><span class="op">,</span> <span class="nam">list</span><span class="op">)</span> <span class="key">else</span> <span class="nam">data</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -579,11 +579,11 @@
     <p class="mis show_mis"><span class="n"><a id="t497" href="#t497">497</a></span><span class="t">                    <span class="nam">logged</span> <span class="op">=</span> <span class="nam">logged</span><span class="op">[</span><span class="num">0</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t498" href="#t498">498</a></span><span class="t">                <span class="nam">refreshed</span> <span class="op">=</span> <span class="nam">float</span><span class="op">(</span><span class="nam">logged</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t499" href="#t499">499</a></span><span class="t">        <span class="key">else</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t500" href="#t500">500</a></span><span class="t">            <span class="key">with</span> <span class="nam">open</span><span class="op">(</span><span class="nam">log_file</span><span class="op">,</span> <span class="str">"w"</span><span class="op">,</span> <span class="nam">encoding</span><span class="op">=</span><span class="str">"utf-8"</span><span class="op">)</span> <span class="key">as</span> <span class="nam">log</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t501" href="#t501">501</a></span><span class="t">                <span class="nam">log</span><span class="op">.</span><span class="nam">write</span><span class="op">(</span><span class="nam">str</span><span class="op">(</span><span class="nam">time</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t500" href="#t500">500</a></span><span class="t">            <span class="key">with</span> <span class="nam">open</span><span class="op">(</span><span class="nam">log_file</span><span class="op">,</span> <span class="str">"w"</span><span class="op">,</span> <span class="nam">encoding</span><span class="op">=</span><span class="str">"utf-8"</span><span class="op">)</span> <span class="key">as</span> <span class="nam">log</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t501" href="#t501">501</a></span><span class="t">                <span class="nam">log</span><span class="op">.</span><span class="nam">write</span><span class="op">(</span><span class="nam">str</span><span class="op">(</span><span class="nam">time</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t502" href="#t502">502</a></span><span class="t">        <span class="key">if</span> <span class="nam">time</span><span class="op">(</span><span class="op">)</span> <span class="op">-</span> <span class="nam">refreshed</span> <span class="op">></span> <span class="num">86400</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t503" href="#t503">503</a></span><span class="t">            <span class="key">for</span> <span class="nam">cached_request</span> <span class="key">in</span> <span class="nam">glob</span><span class="op">(</span><span class="nam">REQUEST_CACHE</span> <span class="op">+</span> <span class="str">"*.json"</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t504" href="#t504">504</a></span><span class="t">                <span class="nam">os</span><span class="op">.</span><span class="nam">remove</span><span class="op">(</span><span class="nam">cached_request</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t503" href="#t503">503</a></span><span class="t">            <span class="key">for</span> <span class="nam">cached_request</span> <span class="key">in</span> <span class="nam">glob</span><span class="op">(</span><span class="nam">REQUEST_CACHE</span> <span class="op">+</span> <span class="str">"*.json"</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t504" href="#t504">504</a></span><span class="t">                <span class="nam">os</span><span class="op">.</span><span class="nam">remove</span><span class="op">(</span><span class="nam">cached_request</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t505" href="#t505">505</a></span><span class="t">    <span class="key">except</span> <span class="nam">Exception</span> <span class="key">as</span> <span class="nam">exc</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t506" href="#t506">506</a></span><span class="t">        <span class="nam">warnings</span><span class="op">.</span><span class="nam">warn</span><span class="op">(</span><span class="nam">UserWarning</span><span class="op">(</span><span class="str">f"failed to manage request cache: {exc}"</span><span class="op">)</span><span class="op">,</span> <span class="nam">stacklevel</span><span class="op">=</span><span class="num">2</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t507" href="#t507">507</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -670,7 +670,7 @@
             <a class="nav" href="z_4909b636852450bb_norming_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.1">coverage.py v7.6.1</a>,
-            created at 2024-09-30 12:52 -0400
+            created at 2024-10-07 15:53 -0400
         </p>
     </div>
 </footer>

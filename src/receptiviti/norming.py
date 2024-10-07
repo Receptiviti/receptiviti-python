@@ -27,8 +27,8 @@ def norming(
     View or Establish Custom Norming Contexts.
 
     Custom norming contexts can be used to process later texts by specifying the
-    `custom_context` API argument in the `receptiviti` function (e.g.,
-    `receptiviti("text to score", version = "v2",options = list(custom_context = "norm_name"))`,
+    `custom_context` API argument in the `receptiviti.request` function (e.g.,
+    `receptiviti.request("text to score", version = "v2", options = {"custom_context": "norm_name"})`,
     where `norm_name` is the name you set here).
 
     Args:
@@ -37,7 +37,7 @@ def norming(
         text (str): Text to be processed and used as the custom norming context.
             Not providing text will return the status of the named norming context.
         options (dict): Options to set for the norming context (e.g.,
-            '{"word_count_filter": 350, "punctuation_filter": .25}').
+            `{"word_count_filter": 350, "punctuation_filter": .25}`).
         dotenv (bool | str): Path to a .env file to read environment variables from. By default,
             will for a file in the current directory or `~/Documents`.
             Passed to `readin_env` as `path`.
@@ -55,7 +55,7 @@ def norming(
 
             - `initial_status`: Initial status of the context.
             - `first_pass`: Response after texts are sent the first time, or
-            `None` if the initial status is 'pass_two'.
+            `None` if the initial status is `pass_two`.
             - `second_pass`: Response after texts are sent the second time.
 
     Examples:
@@ -66,8 +66,13 @@ def norming(
         >>> receptiviti.norming("new_context")
 
         Send tests to establish the context, just like
-        the [receptiviti.request][receptiviti.request] function:
+        the [receptiviti.request][receptiviti.request] function.
+
+        Such as directly:
         >>> receptiviti.norming("new_context", ["text to send", "another text"])
+
+        Or from a file:
+        >>> receptiviti.norming("new_context", "./path/to/file.csv", text_column = "text")
     """
     _, url, key, secret = _resolve_request_def(url, key, secret, dotenv)
     url += "/v2/norming/"
