@@ -1,20 +1,19 @@
 """Make requests to the API."""
 
-import math
 import os
 import re
 import shutil
+from glob import glob
+from math import ceil
 from multiprocessing import current_process
 from tempfile import gettempdir
 from time import perf_counter, time
 from typing import List, Union
 
 import pandas
-import pyarrow
-import pyarrow.compute
 import pyarrow.dataset
 
-from receptiviti.manage_request import _manage_request
+from receptiviti.manage_request import _get_writer, _manage_request
 from receptiviti.norming import norming
 
 CACHE = gettempdir() + "/receptiviti_cache/"
@@ -210,15 +209,17 @@ def request(
             msg = f"custom norming context {api_args['custom_context']} has not been completed"
             raise RuntimeError(msg)
 
-    if isinstance(cache, str):
-        if cache:
-            if clear_cache and os.path.exists(cache):
-                shutil.rmtree(cache, True)
-            os.makedirs(cache, exist_ok=True)
-            if not cache_format:
-                cache_format = os.getenv("RECEPTIVITI_CACHE_FORMAT", "parquet")
-        else:
-            cache = False
+    if isinstance(cache, str) and cache:
+        if clear_cache and os.path.exists(cache):
+            shutil.rmtree(cache, True)
+        os.makedirs(cache, exist_ok=True)
+        if not cache_format:
+            cache_format = os.getenv("RECEPTIVITI_CACHE_FORMAT", "parquet")
+        if cache_format not in ["parquet", "feather"]:
+            msg = "`cache_format` must be `parquet` or `feather`"
+            raise RuntimeError(msg)
+    else:
+        cache = ""
 
     data, res, id_specified = _manage_request(
         text=text,
@@ -257,7 +258,25 @@ def request(
         msg = "no results"
         raise RuntimeError(msg)
     if isinstance(cache, str):
-        _update_cache(res, cache, cache_format, verbose, start_time, [e[0] for e in api_args] if api_args else [])
+        writer = _get_writer(cache_format)
+        schema = pyarrow.schema(
+            (
+                col,
+                (
+                    pyarrow.string()
+                    if res[col].dtype == "O"
+                    else (
+                        pyarrow.int32()
+                        if col in ["summary.word_count", "summary.sentence_count"]
+                        else pyarrow.float32()
+                    )
+                ),
+            )
+            for col in res.columns
+            if col not in ["id", "bin", *(api_args.keys() if api_args else [])]
+        )
+        for bin_dir in glob(cache + "/bin=*/"):
+            _defragment_bin(bin_dir, cache_format, writer, schema)
     if verbose:
         print(f"preparing output ({perf_counter() - start_time:.4f})")
     data.set_index("id", inplace=True)
@@ -316,84 +335,15 @@ def request(
     return res
 
 
-def _update_cache(
-    res: pandas.DataFrame,
-    cache: str,
-    cache_format: str,
-    verbose: bool,
-    start_time: float,
-    add_names: list,
-) -> None:
-    part: pyarrow.dataset.Partitioning = pyarrow.dataset.partitioning(
-        pyarrow.schema([pyarrow.field("bin", pyarrow.string())]), flavor="hive"
-    )
-    exclude = {"id", *add_names}
-
-    def initialize_cache() -> None:
-        initial: pandas.DataFrame = res.iloc[[0]].drop(
-            pandas.Index(exclude.intersection(res.columns)),
-            axis="columns",
-        )
-        initial["text_hash"] = ""
-        initial["bin"] = "h"
-        int_cols = initial.columns[
-            (
-                ~initial.columns.isin(["summary.word_count", "summary.sentence_count"])
-                & (initial.dtypes != object).to_list()
-            )
-        ]
-        initial[[int_cols]] = 0.1
-        pyarrow.dataset.write_dataset(
-            pyarrow.Table.from_pandas(initial),
-            cache,
-            basename_template="0-{i}." + cache_format,
-            format=cache_format,
-            partitioning=part,
-            existing_data_behavior="overwrite_or_ignore",
-        )
-
-    if not os.path.isdir(cache + "/bin=h"):
-        if verbose:
-            print(f"initializing cache ({perf_counter() - start_time:.4f})")
-        initialize_cache()
-    db = pyarrow.dataset.dataset(cache, partitioning=part, format=cache_format)
-    if any(name not in exclude and name not in db.schema.names for name in res.columns.values):
-        if verbose:
-            print(
-                "clearing cache since it contains columns not in new results",
-                f"({perf_counter() - start_time:.4f})",
-            )
-        shutil.rmtree(cache, True)
-        initialize_cache()
-        db = pyarrow.dataset.dataset(cache, partitioning=part, format=cache_format)
-    fresh = res[~res.duplicated(subset=["text_hash"])]
-    su = db.filter(pyarrow.compute.field("text_hash").isin(fresh["text_hash"]))
-    if su.count_rows() > 0:
-        cached = ~pyarrow.compute.is_in(
-            fresh["text_hash"].to_list(),
-            su.scanner(columns=["text_hash"]).to_table()["text_hash"],
-        ).to_pandas(split_blocks=True, self_destruct=True)
-        if any(cached):
-            fresh = fresh[cached.to_list()]
-        else:
-            return
-    n_new = len(fresh)
-    if n_new:
-        if verbose:
-            print(
-                f"adding {n_new} result{'' if n_new == 1 else 's'}",
-                f"to cache ({perf_counter() - start_time:.4f})",
-            )
-        pyarrow.dataset.write_dataset(
-            pyarrow.Table.from_pandas(
-                fresh.drop(
-                    list(exclude.intersection(fresh.columns)),
-                    axis="columns",
-                )
-            ),
-            cache,
-            basename_template=str(math.ceil(time())) + "-{i}." + cache_format,
-            format=cache_format,
-            partitioning=part,
-            existing_data_behavior="overwrite_or_ignore",
-        )
+def _defragment_bin(bin_dir: str, write_format: str, writer, schema: pyarrow.Schema):
+    fragments = glob(f"{bin_dir}/*.{write_format}")
+    if len(fragments) > 1:
+        data = pyarrow.dataset.dataset(fragments, schema, format=write_format, exclude_invalid_files=True).to_table()
+        nrows = data.num_rows
+        n_chunks = max(1, ceil(nrows / 1e9))
+        rows_per_chunk = max(1, ceil(nrows / n_chunks))
+        time_id = str(ceil(time()))
+        for chunk in range(0, n_chunks, rows_per_chunk):
+            writer(data[chunk : (chunk + rows_per_chunk)], f"{bin_dir}/part-{time_id}-{chunk}.{write_format}")
+        for fragment in fragments:
+            os.unlink(fragment)

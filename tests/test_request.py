@@ -80,11 +80,6 @@ class TestRequest:
         expected = ["prep"] * 3 + ["requ", "done", "prep", "sele", "done", ""]
         assert len(messages) == len(expected) and all(line[:4] == expected[i] for i, line in enumerate(messages))
 
-    def test_cache_initialization(self):
-        with TemporaryDirectory() as tempdir:
-            receptiviti.request("a text to score", cache=tempdir, clear_cache=True)
-            assert os.path.isdir(tempdir + "/bin=h")
-
     def test_id_assignment(self):
         text = ["text to score", "another text"]
         with TemporaryDirectory() as tempdir:
@@ -168,5 +163,5 @@ class TestRequest:
                     verbose=True,
                 )
         messages = out.getvalue().split("\n")
-        expected = ["prep"] * 3 + ["requ", "done", "clea", "addi", "prep", "done", ""]
+        expected = ["prep"] * 3 + ["requ", "done", "prep", "done", ""]
         assert len(messages) == len(expected) and all(line[:4] == expected[i] for i, line in enumerate(messages))

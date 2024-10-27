@@ -20,6 +20,8 @@ import pandas
 import pyarrow
 import pyarrow.compute
 import pyarrow.dataset
+import pyarrow.feather
+import pyarrow.parquet
 import requests
 from chardet.universaldetector import UniversalDetector
 from tqdm import tqdm
@@ -53,7 +55,7 @@ def _manage_request(
     make_request=True,
     text_as_paths=False,
     dotenv: Union[bool, str] = True,
-    cache: Union[str, bool] = os.getenv("RECEPTIVITI_CACHE", ""),
+    cache=os.getenv("RECEPTIVITI_CACHE", ""),
     cache_overwrite=False,
     cache_format=os.getenv("RECEPTIVITI_CACHE_FORMAT", "parquet"),
     key=os.getenv("RECEPTIVITI_KEY", ""),
@@ -236,7 +238,7 @@ def _manage_request(
         "retries": retry_limit,
         "add": {} if api_args is None else api_args,
         "request_cache": request_cache,
-        "cache": "" if cache_overwrite or isinstance(cache, bool) and not cache else cache,
+        "cache": "" if cache_overwrite else cache,
         "cache_format": cache_format,
         "to_norming": to_norming,
         "make_request": make_request,
@@ -378,8 +380,8 @@ def _process(
                 body.append({"content": text, "request_id": text_hash, **opts["add"]})
             else:
                 body.append({"text": text, "request_id": text_hash})
-        cached = None
-        if opts["cache"] and os.path.isdir(opts["cache"] + "/bin=h"):
+        cached: Union[pandas.DataFrame, None] = None
+        if opts["cache"] and os.listdir(opts["cache"]):
             db = pyarrow.dataset.dataset(
                 opts["cache"],
                 partitioning=pyarrow.dataset.partitioning(
@@ -391,24 +393,38 @@ def _process(
                 su = db.filter(pyarrow.compute.field("text_hash").isin(bundle["text_hash"]))
                 if su.count_rows() > 0:
                     cached = su.to_table().to_pandas(split_blocks=True, self_destruct=True)
-        res = "failed to retrieve results"
+        res: Union[str, pandas.DataFrame] = "failed to retrieve results"
+        json_body = json.dumps(body, separators=(",", ":"))
+        bundle_hash = hashlib.md5(json_body.encode()).hexdigest()
         if cached is None or len(cached) < len(bundle):
             if cached is None or not len(cached):
-                res = _prepare_results(body, opts)
+                res = _prepare_results(json_body, bundle_hash, opts)
             else:
                 fresh = ~pyarrow.compute.is_in(
                     bundle["text_hash"].to_list(), pyarrow.array(cached["text_hash"])
                 ).to_pandas(split_blocks=True, self_destruct=True)
-                res = _prepare_results([body[i] for i, ck in enumerate(fresh) if ck], opts)
+                json_body = json.dumps([body[i] for i, ck in enumerate(fresh) if ck], separators=(",", ":"))
+                res = _prepare_results(json_body, hashlib.md5(json_body.encode()).hexdigest(), opts)
             if not isinstance(res, str):
                 if cached is not None:
-                    if len(res) != len(cached) or not all(cached.columns.isin(res.columns)):
-                        cached = _prepare_results([body[i] for i, ck in enumerate(fresh) if not ck], opts)
+                    if res.ndim != cached.ndim or not all(cached.columns.isin(res.columns)):
+                        json_body = json.dumps([body[i] for i, ck in enumerate(fresh) if ck], separators=(",", ":"))
+                        cached = _prepare_results(json_body, hashlib.md5(json_body.encode()).hexdigest(), opts)
                     res = pandas.concat([res, cached])
+                if opts["cache"]:
+                    writer = _get_writer(opts["cache_format"])
+                    for id_bin, d in res.groupby("bin"):
+                        bin_dir = f"{opts['cache']}/bin={id_bin}"
+                        os.makedirs(bin_dir, exist_ok=True)
+                        writer(
+                            pyarrow.Table.from_pandas(d, preserve_index=False),
+                            f"{bin_dir}/{bundle_hash}-0.{opts['cache_format']}",
+                        )
         else:
             res = cached
         if not isinstance(res, str):
-            res = res.merge(bundle.loc[:, ["text_hash", "id"]], on="text_hash")
+            if "text_hash" in res:
+                res = res.merge(bundle.loc[:, ["text_hash", "id"]], on="text_hash")
             reses.append(res)
         if queue is not None:
             queue.put((0, None) if isinstance(res, str) else (len(res), res))
@@ -419,30 +435,27 @@ def _process(
     return reses[0] if len(reses) == 1 else pandas.concat(reses, ignore_index=True, sort=False)
 
 
-def _prepare_results(body: list, opts: dict):
-    json_body = json.dumps(body, separators=(",", ":"))
-    bundle_hash = REQUEST_CACHE + hashlib.md5(json_body.encode()).hexdigest() + ".json" if opts["request_cache"] else ""
+def _prepare_results(body: str, bundle_hash: str, opts: dict):
     raw_res = _request(
-        json_body,
+        body,
         opts["url"],
         opts["auth"],
         opts["retries"],
-        bundle_hash,
+        REQUEST_CACHE + bundle_hash + ".json" if opts["request_cache"] else "",
         opts["to_norming"],
         opts["make_request"],
     )
     if isinstance(raw_res, str):
         return raw_res
     res = pandas.json_normalize(raw_res)
-    res.rename(columns={"request_id": "text_hash"}, inplace=True)
-    if "text_hash" not in res:
-        res.insert(0, "text_hash", [text["request_id"] for text in body])
-    res.drop(
-        list({"response_id", "language", "version", "error"}.intersection(res.columns)),
-        axis="columns",
-        inplace=True,
-    )
-    res.insert(res.shape[1], "bin", ["h" + h[0] for h in res["text_hash"]])
+    if "request_id" in res:
+        res.rename(columns={"request_id": "text_hash"}, inplace=True)
+        res.drop(
+            list({"response_id", "language", "version", "error"}.intersection(res.columns)),
+            axis="columns",
+            inplace=True,
+        )
+        res.insert(res.ndim, "bin", ["h" + h[0] for h in res["text_hash"]])
     return res
 
 
@@ -579,3 +592,10 @@ def _readin(
             )
         return pandas.DataFrame({"text": text, "ids": ids})
     return text
+
+
+def _get_writer(write_format: str):
+    if write_format == "parquet":
+        return pyarrow.parquet.write_table
+    if write_format == "feather":
+        return pyarrow.feather.write_feather

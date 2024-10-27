@@ -9,6 +9,7 @@
 
 ### Improvements
 
+- Improves cache performance.
 - Validates `version` and `endpoint`.
 
 ## Bug Fixes
