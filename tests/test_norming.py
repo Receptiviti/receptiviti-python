@@ -18,7 +18,8 @@ class TestStatus:
         assert "test" == res["name"]
 
     def test_updating(self):
-        norming_context = "short_text_p7"
+        norming_context = "short_text"
+        receptiviti.norming(norming_context, delete=True)
         with pytest.warns(UserWarning, match="option invalid_option was not set"):
             initial_status = receptiviti.norming(norming_context, options={"word_count_filter": 1, "invalid_option": 1})
         if initial_status["status"] != "completed":

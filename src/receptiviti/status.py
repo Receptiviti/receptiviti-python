@@ -35,17 +35,7 @@ def status(
     Examples:
         >>> receptiviti.status()
     """
-    if dotenv is not None and dotenv:
-        readin_env("." if isinstance(dotenv, bool) else dotenv)
-    if not url:
-        url = os.getenv("RECEPTIVITI_URL", "https://api.receptiviti.com")
-    if not key:
-        key = os.getenv("RECEPTIVITI_KEY", "")
-    if not secret:
-        secret = os.getenv("RECEPTIVITI_SECRET", "")
-    url = ("https://" if re.match("http", url, re.I) is None else "") + re.sub("/[Vv]\\d(?:/.*)?$|/+$", "", url)
-    if re.match("https?://[^.]+[.:][^.]", url, re.I) is None:
-        raise TypeError("`url` does not appear to be valid: " + url)
+    _, url, key, secret = _resolve_request_def(url, key, secret, dotenv)
     try:
         res = requests.get(url.lower() + "/v1/ping", auth=(key, secret), timeout=9999)
     except requests.exceptions.RequestException:
@@ -65,3 +55,25 @@ def status(
             )
         )
     return res
+
+
+def _resolve_request_def(url: str, key: str, secret: str, dotenv: Union[bool, str]):
+    if dotenv:
+        readin_env("." if isinstance(dotenv, bool) else dotenv)
+    if not url:
+        url = os.getenv("RECEPTIVITI_URL", "https://api.receptiviti.com")
+    full_url = url
+    url = ("https://" if re.match("http", url, re.I) is None else "") + re.sub("/+[Vv]\\d+(?:/.*)?$|/+$", "", url)
+    if re.match("https?://[^.]+[.:][^.]", url, re.I) is None:
+        raise TypeError("`url` does not appear to be valid: " + url)
+    if not key:
+        key = os.getenv("RECEPTIVITI_KEY", "")
+        if not key:
+            msg = "specify your key, or set it to the RECEPTIVITI_KEY environment variable"
+            raise RuntimeError(msg)
+    if not secret:
+        secret = os.getenv("RECEPTIVITI_SECRET", "")
+        if not secret:
+            msg = "specify your secret, or set it to the RECEPTIVITI_SECRET environment variable"
+            raise RuntimeError(secret)
+    return (full_url, url, key, secret)

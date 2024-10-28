@@ -75,7 +75,7 @@ class TestRequest:
 
     def test_verbose(self):
         with redirect_stdout(StringIO()) as out:
-            receptiviti.request("text to score", frameworks=["summary", "sallee"], verbose=True)
+            receptiviti.request("text to score", frameworks=["summary", "sallee"], version="v2", verbose=True)
         messages = out.getvalue().split("\n")
         expected = ["prep"] * 3 + ["requ", "done", "prep", "sele", "done", ""]
         assert len(messages) == len(expected) and all(line[:4] == expected[i] for i, line in enumerate(messages))

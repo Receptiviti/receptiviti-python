@@ -26,8 +26,7 @@ import requests
 from chardet.universaldetector import UniversalDetector
 from tqdm import tqdm
 
-from receptiviti.readin_env import readin_env
-from receptiviti.status import status
+from receptiviti.status import _resolve_request_def, status
 
 CACHE = gettempdir() + "/receptiviti_cache/"
 REQUEST_CACHE = gettempdir() + "/receptiviti_request_cache/"
@@ -307,26 +306,6 @@ def _manage_request(
         print(f"done requesting ({perf_counter() - start_time:.4f})")
 
     return (data, res, id_specified)
-
-
-def _resolve_request_def(url: str, key: str, secret: str, dotenv: Union[bool, str]):
-    if dotenv:
-        readin_env("." if isinstance(dotenv, bool) else dotenv)
-    if not url:
-        url = os.getenv("RECEPTIVITI_URL", "https://api.receptiviti.com")
-    full_url = url
-    url = ("https://" if re.match("http", url, re.I) is None else "") + re.sub("/+[Vv]\\d+(?:/.*)?$|/+$", "", url)
-    if not key:
-        key = os.getenv("RECEPTIVITI_KEY", "")
-        if not key:
-            msg = "specify your key, or set it to the RECEPTIVITI_KEY environment variable"
-            raise RuntimeError(msg)
-    if not secret:
-        secret = os.getenv("RECEPTIVITI_SECRET", "")
-        if not secret:
-            msg = "specify your secret, or set it to the RECEPTIVITI_SECRET environment variable"
-            raise RuntimeError(secret)
-    return (full_url, url, key, secret)
 
 
 def _queue_manager(

@@ -16,13 +16,14 @@ def norming(
     name: Union[str, None] = None,
     text: Union[str, List[str], pandas.DataFrame, None] = None,
     options: Union[dict, None] = None,
+    delete=False,
     dotenv: Union[bool, str] = True,
     key=os.getenv("RECEPTIVITI_KEY", ""),
     secret=os.getenv("RECEPTIVITI_SECRET", ""),
     url=os.getenv("RECEPTIVITI_URL", ""),
     verbose=True,
     **kwargs,
-) -> Union[pandas.DataFrame, pandas.Series, "dict[str, Union[pandas.Series, pandas.DataFrame, None]]"]:
+) -> Union[None, pandas.DataFrame, pandas.Series, "dict[str, Union[pandas.Series, pandas.DataFrame, None]]"]:
     """
     View or Establish Custom Norming Contexts.
 
@@ -38,6 +39,7 @@ def norming(
             Not providing text will return the status of the named norming context.
         options (dict): Options to set for the norming context (e.g.,
             `{"word_count_filter": 350, "punctuation_filter": .25}`).
+        delete (bool): If `True`, will request removal of the `name` context.
         dotenv (bool | str): Path to a .env file to read environment variables from. By default,
             will for a file in the current directory or `~/Documents`.
             Passed to `readin_env` as `path`.
@@ -49,9 +51,10 @@ def norming(
             see [receptiviti.request][receptiviti.request].
 
     Returns:
-        Either a `pandas.DataFrame` containing all existing custom context statuses
+        Nothing if `delete` is `True`.
+        Otherwise, either a `pandas.DataFrame` containing all existing custom context statuses
             (if no `name` is specified), a `pandas.Series` containing the the status of
-            `name` (if `text` is not specified), or a dictionary:
+            `name` (if `text` is not specified), a dictionary:
 
             - `initial_status`: Initial status of the context.
             - `first_pass`: Response after texts are sent the first time, or
@@ -73,6 +76,9 @@ def norming(
 
         Or from a file:
         >>> receptiviti.norming("new_context", "./path/to/file.csv", text_column = "text")
+
+        Delete the new context:
+        >>> receptiviti.norming("new_context", delete=True)
     """
     _, url, key, secret = _resolve_request_def(url, key, secret, dotenv)
     url += "/v2/norming/"
@@ -98,9 +104,21 @@ def norming(
         return norms
 
     if len(norms) and name in norms["name"].values:
+        if delete:
+            res = requests.delete(url + name, auth=auth, timeout=9999)
+            content = res.json() if res.text[:1] == "[" else {"message": res.text}
+            if res.status_code != 200:
+                msg = f"Request Error ({res.status_code!s})" + (
+                    (" (" + str(content["code"]) + ")" if "code" in content else "") + ": " + content["message"]
+                )
+                raise RuntimeError(msg)
+            return None
         status = norms[norms["name"] == name].iloc[0]
         if options:
             warnings.warn(UserWarning(f"context {name} already exists, so options do not apply"), stacklevel=2)
+    elif delete:
+        print(f"context {name} does not exist")
+        return None
     else:
         if verbose:
             print(f"requesting creation of context {name}")

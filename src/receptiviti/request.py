@@ -13,8 +13,10 @@ from typing import List, Union
 import pandas
 import pyarrow.dataset
 
+from receptiviti.frameworks import frameworks as get_frameworks
 from receptiviti.manage_request import _get_writer, _manage_request
 from receptiviti.norming import norming
+from receptiviti.readin_env import readin_env
 
 CACHE = gettempdir() + "/receptiviti_cache/"
 REQUEST_CACHE = gettempdir() + "/receptiviti_request_cache/"
@@ -83,7 +85,9 @@ def request(
         return_text (bool): If `True`, will include a `text` column in the output with the
             original text.
         api_args (dict): Additional arguments to include in the request.
-        frameworks (str | list): One or more names of frameworks to return.
+        frameworks (str | list): One or more names of frameworks to request. Note that this
+            changes the results from the API, so it will invalidate any cached results
+            without the same set of frameworks.
         framework_prefix (bool): If `False`, will drop framework prefix from column names.
             If one framework is selected, will default to `False`.
         bundle_size (int): Maximum number of texts per bundle.
@@ -193,6 +197,10 @@ def request(
         raise RuntimeError(msg)
     start_time = perf_counter()
 
+    if dotenv:
+        readin_env(dotenv if isinstance(dotenv, str) else ".")
+        dotenv = False
+
     # check norming context status
     if api_args and "custom_context" in api_args:
         if "context" in api_args:
@@ -208,6 +216,25 @@ def request(
         if norming_status.iloc[0]["status"] != "completed":
             msg = f"custom norming context {api_args['custom_context']} has not been completed"
             raise RuntimeError(msg)
+
+    # check frameworks
+    if frameworks and version and "2" in version:
+        if not api_args:
+            api_args = {}
+        if isinstance(frameworks, str):
+            frameworks = [frameworks]
+        api_args["frameworks"] = [f for f in frameworks if f != "summary"]
+    if api_args and "frameworks" in api_args:
+        arg_frameworks: "list[str]" = (
+            api_args["frameworks"].split(",") if isinstance(api_args["frameworks"], str) else api_args["frameworks"]
+        )
+        available_frameworks = get_frameworks(url=url, key=key, secret=secret)
+        for f in arg_frameworks:
+            if f not in available_frameworks:
+                msg = f"requested framework is not available to your account: {f}"
+                raise RuntimeError(msg)
+        if isinstance(api_args["frameworks"], list):
+            api_args["frameworks"] = ",".join(api_args["frameworks"])
 
     if isinstance(cache, str) and cache:
         if clear_cache and os.path.exists(cache):
