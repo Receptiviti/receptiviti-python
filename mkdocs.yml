@@ -59,6 +59,7 @@ nav:
       - functions/status.md
       - functions/readin_env.md
       - functions/norming.md
+      - functions/frameworks.md
   - Test Coverage: coverage/index.html
   - Versions:
       - Development: https://receptiviti.github.io/receptiviti-python/
