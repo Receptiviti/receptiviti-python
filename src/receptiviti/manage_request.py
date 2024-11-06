@@ -41,6 +41,7 @@ def _manage_request(
     directory: Union[str, None] = None,
     file_type="txt",
     encoding: Union[str, None] = None,
+    context="written",
     api_args: Union[dict, None] = None,
     bundle_size=1000,
     bundle_byte_limit=75e5,
@@ -230,7 +231,9 @@ def _manage_request(
         "url": (
             full_url
             if to_norming
-            else (f"{url}/{version}/{endpoint}/bulk" if version == "v1" else f"{url}/{version}/{endpoint}").lower()
+            else (
+                f"{url}/{version}/{endpoint}/bulk" if version == "v1" else f"{url}/{version}/{endpoint}/{context}"
+            ).lower()
         ),
         "version": version,
         "auth": requests.auth.HTTPBasicAuth(key, secret),

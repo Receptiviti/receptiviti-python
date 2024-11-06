@@ -33,6 +33,8 @@ def request(
     file_type: str = "txt",
     encoding: Union[str, None] = None,
     return_text=False,
+    context="written",
+    custom_context: Union[str, bool] = False,
     api_args: Union[dict, None] = None,
     frameworks: Union[str, List[str], None] = None,
     framework_prefix: Union[bool, None] = None,
@@ -84,6 +86,9 @@ def request(
             specify encoding.
         return_text (bool): If `True`, will include a `text` column in the output with the
             original text.
+        context (str): Name of the analysis context.
+        custom_context (str | bool): Name of a custom context (as listed by `receptiviti.norming`),
+            or `True` if `context` is the name of a custom context.
         api_args (dict): Additional arguments to include in the request.
         frameworks (str | list): One or more names of frameworks to request. Note that this
             changes the results from the API, so it will invalidate any cached results
@@ -202,19 +207,19 @@ def request(
         dotenv = False
 
     # check norming context status
-    if api_args and "custom_context" in api_args:
-        if "context" in api_args:
-            msg = "only one of `context` or `custom_context` may be specified"
-            raise RuntimeError(msg)
+    if isinstance(custom_context, str):
+        context = custom_context
+        custom_context = True
+    if custom_context:
         if verbose:
             print(f"retrieving custom norming list ({perf_counter() - start_time:.4f})")
         norming_status: pandas.DataFrame = norming(url=url, key=key, secret=secret, verbose=False)
-        if len(norming_status) == 0 or api_args["custom_context"] not in norming_status["name"].values:
-            msg = f"custom norming context {api_args['custom_context']} is not on record"
+        if len(norming_status) == 0 or context not in norming_status["name"].values:
+            msg = f"custom norming context {context} is not on record"
             raise RuntimeError(msg)
-        norming_status = norming_status[norming_status["name"] == api_args["custom_context"]]
+        norming_status = norming_status[norming_status["name"] == context]
         if norming_status.iloc[0]["status"] != "completed":
-            msg = f"custom norming context {api_args['custom_context']} has not been completed"
+            msg = f"custom norming context {context} has not been completed"
             raise RuntimeError(msg)
 
     # check frameworks
@@ -257,6 +262,7 @@ def request(
         directory=directory,
         file_type=file_type,
         encoding=encoding,
+        context=f"custom/{context}" if custom_context else context,
         api_args=api_args,
         bundle_size=bundle_size,
         bundle_byte_limit=bundle_byte_limit,

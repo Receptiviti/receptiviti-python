@@ -34,12 +34,6 @@ class TestRequest:
         with pytest.raises(RuntimeError, match="invalid endpoint: v1"):
             receptiviti.request("text to score", endpoint="framework/v1")
 
-    def test_invalid_api_args(self):
-        with pytest.raises(RuntimeError, match="only one of"):
-            receptiviti.request(
-                "text to score", version="v2", api_args={"context": "default", "custom_context": "custom"}
-            )
-
     def test_single_text(self):
         res = receptiviti.request("text to score")
         assert res["summary.word_count"][0] == 3
@@ -47,6 +41,10 @@ class TestRequest:
     def test_single_text_v2(self):
         res = receptiviti.request("text to score", version="v2")
         assert res["summary.word_count"][0] == 3
+
+    def test_contexts(self):
+        res = receptiviti.request("text to score", version="v2", context="spoken")
+        assert res["drives.power"][0] > 0.05
 
     def test_invalid_text(self):
         with pytest.raises(RuntimeError, match="one of your texts is over the bundle size limit"):
