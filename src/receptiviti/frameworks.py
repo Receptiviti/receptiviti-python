@@ -30,7 +30,9 @@ def frameworks(
       List of framework names.
 
     Examples:
-        >>> receptiviti.frameworks()
+        ```
+        receptiviti.frameworks()
+        ```
     """
     _, url, key, secret = _resolve_request_def(url, key, secret, dotenv)
     res = requests.get(url.lower() + "/v2/frameworks", auth=(key, secret), timeout=9999)

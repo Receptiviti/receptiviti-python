@@ -11,21 +11,23 @@ receptiviti.readin_env()
 class TestStatus:
     def test_listing(self):
         res = receptiviti.norming()
-        assert "test" in res["name"].values
+        assert "custom/short_text_p01" in res["name"].values
+
+        res = receptiviti.norming(name_only=True)
+        assert "custom/short_text_p01" in res
 
     def test_single_status(self):
-        res = receptiviti.norming("test")
-        assert "test" == res["name"]
+        res = receptiviti.norming("short_text_p01")
+        assert "custom/short_text_p01" == res["name"]
 
     def test_updating(self):
-        norming_context = "short_text"
+        norming_context = "short_text_p04"
         receptiviti.norming(norming_context, delete=True)
         with pytest.warns(UserWarning, match="option invalid_option was not set"):
-            initial_status = receptiviti.norming(norming_context, options={"word_count_filter": 1, "invalid_option": 1})
-        if initial_status["status"] != "completed":
-            with pytest.raises(RuntimeError, match="has not been completed"):
-                receptiviti.request("a text to score", version="v2", custom_context=norming_context)
-            receptiviti.norming(norming_context, "new text to add")
+            receptiviti.norming(norming_context, options={"word_count_filter": 1, "invalid_option": 1})
+        with pytest.raises(RuntimeError, match="is not on record"):
+            receptiviti.request("a text to score", version="v2", custom_context=norming_context)
+        receptiviti.norming(norming_context, "new text to add")
         final_status = receptiviti.norming(norming_context)
         assert final_status["status"] == "completed"
         base_request = receptiviti.request("a new text to add", version="v2")

@@ -16,6 +16,11 @@ def readin_env(path=".", name=".env", overwrite=False) -> None:
       overwrite (bool): If `True`, overwrites existing environment variables with
         the same name as those in the .env file.
 
+    Examples:
+    ```
+    receptiviti.readin_env()
+    ```
+
     Returns:
       If a file is found, it will add contents to `os.environ`.
     """

@@ -33,7 +33,9 @@ def status(
       Response from the API server.
 
     Examples:
-        >>> receptiviti.status()
+        ```
+        receptiviti.status()
+        ```
     """
     _, url, key, secret = _resolve_request_def(url, key, secret, dotenv)
     try:

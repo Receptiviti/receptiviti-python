@@ -128,16 +128,26 @@ def request(
         Scores associated with each input text.
 
     Examples:
-        Score a single text
-        >>> single = receptiviti.request("a text to score")
+        ```
+        # score a single text
+        single = receptiviti.request("a text to score")
 
-        Score multiple texts, and write results to a file
-        >>> multi = receptiviti.request(["first text to score", "second text"], "filename.csv")
+        # score multiple texts, and write results to a file
+        multi = receptiviti.request(["first text to score", "second text"], "filename.csv")
 
-        Score many texts in separate files
-        >>> file_results = receptiviti.request(
-        >>>     directory="./path/to/csv_folder", text_column="text", file_type="csv"
-        >>> )
+        # score texts in separate files
+        ## defaults to look for .txt files
+        file_results = receptiviti.request(directory = "./path/to/txt_folder")
+
+        ## could be .csv
+        file_results = receptiviti.request(
+            directory = "./path/to/csv_folder",
+            text_column = "text", file_type = "csv"
+        )
+
+        # score texts in a single file
+        results = receptiviti.request("./path/to/file.csv", text_column = "text")
+        ```
 
     Cache:
         If `cache` is specified, results for unique texts are saved in an Arrow database
@@ -206,20 +216,16 @@ def request(
         readin_env(dotenv if isinstance(dotenv, str) else ".")
         dotenv = False
 
-    # check norming context status
+    # check norming context
     if isinstance(custom_context, str):
         context = custom_context
         custom_context = True
-    if custom_context:
+    if context != "written":
         if verbose:
-            print(f"retrieving custom norming list ({perf_counter() - start_time:.4f})")
-        norming_status: pandas.DataFrame = norming(url=url, key=key, secret=secret, verbose=False)
-        if len(norming_status) == 0 or context not in norming_status["name"].values:
-            msg = f"custom norming context {context} is not on record"
-            raise RuntimeError(msg)
-        norming_status = norming_status[norming_status["name"] == context]
-        if norming_status.iloc[0]["status"] != "completed":
-            msg = f"custom norming context {context} has not been completed"
+            print(f"retrieving norming contexts ({perf_counter() - start_time:.4f})")
+        available_contexts: "list[str]" = norming(name_only=True, url=url, key=key, secret=secret, verbose=False)
+        if ("custom/" + context if custom_context else context) not in available_contexts:
+            msg = f"norming context {context} is not on record or is not completed"
             raise RuntimeError(msg)
 
     # check frameworks
