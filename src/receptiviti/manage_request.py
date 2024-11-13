@@ -86,6 +86,7 @@ def _manage_request(
     if to_norming:
         version = "v2"
         endpoint = "norming"
+        request_cache = False
     else:
         if not version:
             version = os.getenv("RECEPTIVITI_VERSION", "v1")

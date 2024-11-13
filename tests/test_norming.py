@@ -11,17 +11,17 @@ receptiviti.readin_env()
 class TestStatus:
     def test_listing(self):
         res = receptiviti.norming()
-        assert "custom/short_text_p01" in res["name"].values
+        assert "custom/test" in res["name"].values
 
         res = receptiviti.norming(name_only=True)
-        assert "custom/short_text_p01" in res
+        assert "custom/test" in res
 
     def test_single_status(self):
-        res = receptiviti.norming("short_text_p01")
-        assert "custom/short_text_p01" == res["name"]
+        res = receptiviti.norming("test")
+        assert "custom/test" == res["name"]
 
     def test_updating(self):
-        norming_context = "short_text_p04"
+        norming_context = "short_text"
         receptiviti.norming(norming_context, delete=True)
         with pytest.warns(UserWarning, match="option invalid_option was not set"):
             receptiviti.norming(norming_context, options={"word_count_filter": 1, "invalid_option": 1})
