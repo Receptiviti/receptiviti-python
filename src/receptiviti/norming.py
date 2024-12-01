@@ -4,7 +4,7 @@ import json
 import os
 import re
 import warnings
-from typing import List, Union
+from typing import Dict, List, Union
 
 import pandas
 import requests
@@ -24,9 +24,7 @@ def norming(
     url=os.getenv("RECEPTIVITI_URL", ""),
     verbose=True,
     **kwargs,
-) -> Union[
-    None, "list[str]", pandas.DataFrame, pandas.Series, "dict[str, Union[pandas.Series, pandas.DataFrame, None]]"
-]:
+) -> Union[None, List[str], pandas.DataFrame, pandas.Series, Dict[str, Union[pandas.Series, pandas.DataFrame, None]]]:
     """
     View or Establish Custom Norming Contexts.
 

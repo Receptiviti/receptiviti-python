@@ -4,12 +4,14 @@
 
 ### Additions
 
+- Adds `collect_results` option for cache-only output.
 - Adds framework checking and listing functionality.
 - Adds custom norming context creation functionality.
 - Adds support for V2 of the API.
 
 ### Improvements
 
+- Makes `pyarrow` optional.
 - Improves cache performance.
 - Validates `version` and `endpoint`.
 

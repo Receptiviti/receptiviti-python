@@ -1,7 +1,7 @@
 """Check the status of the API."""
 
 import os
-from typing import Union
+from typing import List, Union
 
 import requests
 
@@ -13,7 +13,7 @@ def frameworks(
     key: str = os.getenv("RECEPTIVITI_KEY", ""),
     secret: str = os.getenv("RECEPTIVITI_SECRET", ""),
     dotenv: Union[bool, str] = False,
-) -> "list[str]":
+) -> List[str]:
     """
     List Available Frameworks.
 

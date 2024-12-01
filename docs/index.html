@@ -325,6 +325,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#request-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      Request Process
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -720,6 +729,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#request-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      Request Process
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -749,7 +767,7 @@
 <p>Development</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/receptiviti/receptiviti-python.git
 </span></code></pre></div>
-<p>And load the package in a python console:</p>
+<p>And load the package in a Python console:</p>
 <div class="language-py highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span> <span class="nn">receptiviti</span>
 </span></code></pre></div>
 <h2 id="examples">Examples</h2>
@@ -783,6 +801,33 @@
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RECEPTIVITI_KEY&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;32lettersandnumbers&quot;</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;RECEPTIVITI_SECRET&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;56LettersAndNumbers&quot;</span>
 </span></code></pre></div>
+<h2 id="request-process">Request Process</h2>
+<p>The <code>request</code> function handles texts and results in several steps:</p>
+<ol>
+<li>Prepare bundles (split <code>text</code> into &lt;= <code>bundle_size</code> and &lt;= <code>bundle_byte_limit</code> bundles).<ol>
+<li>If <code>text</code> points to a directory or list of files, these will be read in later.</li>
+<li>If <code>in_memory</code> is <code>False</code>, bundles are written to a temporary location, and read back in when the request is made.</li>
+</ol>
+</li>
+<li>Get scores for texts within each bundle.<ol>
+<li>If texts are paths, or <code>in_memory</code> is <code>False</code>, will load texts.</li>
+<li>If <code>cache</code> is set, will skip any texts with cached scores.</li>
+<li>If <code>request_cache</code> is <code>True</code>, will check for a cached request.</li>
+<li>If any texts need scoring and <code>make_request</code> is <code>True</code>, will send unscored texts to the API.</li>
+</ol>
+</li>
+<li>If a request was made and <code>request_cache</code> is set, will cache the response.</li>
+<li>If <code>cache</code> is set, will write bundle scores to the cache.</li>
+<li>After requests are made, if <code>cache</code> is set, will defragment the cache (combine bundle results within partitions).</li>
+<li>If <code>collect_results</code> is <code>True</code>, will prepare results:<ol>
+<li>Will realign results with <code>text</code> (and <code>id</code> if provided).</li>
+<li>If <code>output</code> is specified, will write realigned results to it.</li>
+<li>Will drop additional columns (such as <code>custom</code> and <code>id</code> if not provided).</li>
+<li>If <code>framework</code> is specified, will use it to select columns of the results.</li>
+<li>Returns results.</li>
+</ol>
+</li>
+</ol>
 
 
 

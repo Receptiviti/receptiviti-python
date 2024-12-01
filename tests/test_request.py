@@ -99,7 +99,9 @@ class TestRequest:
     def test_from_directory(self):
         with TemporaryDirectory() as tempdir:
             cache = tempdir + "/cache"
-            res_single = receptiviti.request("../data.txt", cache=cache)
+            res_background = receptiviti.request("../data.txt", cache=cache, collect_results=False)
+            assert res_background is None
+            res_single = receptiviti.request("../data.txt", cache=cache, request_cache=False, make_request=False)
             nth_text = 0
             txt_files = []
             csv_files = []

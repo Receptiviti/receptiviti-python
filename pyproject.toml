@@ -29,10 +29,10 @@ dependencies = [
   "numpy",
   "pandas",
   "tqdm",
-  "pyarrow",
 ]
 
 [project.optional-dependencies]
+cache = ["pyarrow"]
 dev = [
   "types-requests",
   "pyarrow-stubs",

@@ -49,6 +49,7 @@ def _manage_request(
     retry_limit=50,
     request_cache=True,
     cores=1,
+    collect_results=True,
     in_memory: Union[bool, None] = None,
     verbose=False,
     progress_bar: Union[str, bool] = os.getenv("RECEPTIVITI_PB", "True"),
@@ -64,7 +65,7 @@ def _manage_request(
     version=os.getenv("RECEPTIVITI_VERSION", ""),
     endpoint=os.getenv("RECEPTIVITI_ENDPOINT", ""),
     to_norming=False,
-) -> tuple[pandas.DataFrame, pandas.DataFrame | None, bool]:
+) -> tuple[pandas.DataFrame, Union[pandas.DataFrame, None], bool]:
     if cores > 1 and current_process().name != "MainProcess":
         return (pandas.DataFrame(), None, False)
     start_time = perf_counter()
@@ -241,7 +242,8 @@ def _manage_request(
         "retries": retry_limit,
         "add": {} if api_args is None else api_args,
         "request_cache": request_cache,
-        "cache": "" if cache_overwrite else cache,
+        "cache": cache,
+        "cache_overwrite": cache_overwrite,
         "cache_format": cache_format,
         "to_norming": to_norming,
         "make_request": make_request,
@@ -250,6 +252,7 @@ def _manage_request(
         "id_column": id_column,
         "collapse_lines": collapse_lines,
         "encoding": encoding,
+        "collect_results": collect_results,
     }
     if version != "v1" and api_args:
         opts["url"] += "?" + urllib.parse.urlencode(api_args)
@@ -280,8 +283,8 @@ def _manage_request(
         if parallel:
             if verbose:
                 print(f"requesting in parallel ({perf_counter() - start_time:.4f})")
-            waiter: "Queue[pandas.DataFrame]" = Queue()
-            queue: "Queue[tuple[int, pandas.DataFrame]]" = Queue()
+            waiter: "Queue[List[Union[pandas.DataFrame, None]]]" = Queue()
+            queue: "Queue[tuple[int, Union[pandas.DataFrame, None]]]" = Queue()
             manager = Process(
                 target=_queue_manager,
                 args=(queue, waiter, n_texts, n_bundles, use_pb, verbose),
@@ -309,12 +312,12 @@ def _manage_request(
     if verbose:
         print(f"done requesting ({perf_counter() - start_time:.4f})")
 
-    return (data, res, id_specified)
+    return (data, pandas.concat(res, ignore_index=True, sort=False) if opts["collect_results"] else None, id_specified)
 
 
 def _queue_manager(
     queue: "Queue[tuple[int, Union[pandas.DataFrame, None]]]",
-    waiter: "Queue[pandas.DataFrame]",
+    waiter: "Queue[List[Union[pandas.DataFrame, None]]]",
     n_texts: int,
     n_bundles: int,
     use_pb=True,
@@ -322,9 +325,9 @@ def _queue_manager(
 ):
     if use_pb:
         pb = tqdm(total=n_texts, leave=verbose)
-    res: List[pandas.DataFrame] = []
+    res: List[Union[pandas.DataFrame, None]] = []
     for size, chunk in iter(queue.get, None):
-        if isinstance(chunk, pandas.DataFrame):
+        if size:
             if use_pb:
                 pb.update(size)
             res.append(chunk)
@@ -332,16 +335,16 @@ def _queue_manager(
                 break
         else:
             break
-    waiter.put(pandas.concat(res, ignore_index=True, sort=False))
+    waiter.put(res)
 
 
 def _process(
-    bundles: list,
+    bundles: List[pandas.DataFrame],
     opts: dict,
     queue: Union["Queue[tuple[int, Union[pandas.DataFrame, None]]]", None] = None,
     pb: Union[tqdm, None] = None,
-) -> pandas.DataFrame:
-    reses: List[pandas.DataFrame] = []
+) -> List[Union[pandas.DataFrame, None]]:
+    reses: List[Union[pandas.DataFrame, None]] = []
     for bundle in bundles:
         if isinstance(bundle, str):
             with open(bundle, "rb") as scratch:
@@ -350,7 +353,7 @@ def _process(
         bundle.insert(0, "text_hash", "")
         if opts["text_is_path"]:
             bundle["text"] = _readin(
-                bundle["text"],
+                bundle["text"].to_list(),
                 opts["text_column"],
                 opts["id_column"],
                 opts["collapse_lines"],
@@ -363,8 +366,10 @@ def _process(
                 body.append({"content": text, "request_id": text_hash, **opts["add"]})
             else:
                 body.append({"text": text, "request_id": text_hash})
+        ncached = 0
         cached: Union[pandas.DataFrame, None] = None
-        if opts["cache"] and os.listdir(opts["cache"]):
+        cached_cols: List[str] = []
+        if not opts["cache_overwrite"] and opts["cache"] and os.listdir(opts["cache"]):
             db = pyarrow.dataset.dataset(
                 opts["cache"],
                 partitioning=pyarrow.dataset.partitioning(
@@ -372,50 +377,74 @@ def _process(
                 ),
                 format=opts["cache_format"],
             )
-            if "text_hash" in db.schema.names:
+            cached_cols = db.schema.names
+            if "text_hash" in cached_cols:
                 su = db.filter(pyarrow.compute.field("text_hash").isin(bundle["text_hash"]))
-                if su.count_rows() > 0:
-                    cached = su.to_table().to_pandas(split_blocks=True, self_destruct=True)
+                ncached = su.count_rows()
+                if ncached > 0:
+                    cached = (
+                        su.to_table().to_pandas(split_blocks=True, self_destruct=True)
+                        if opts["collect_results"]
+                        else su.scanner(["text_hash"]).to_table().to_pandas(split_blocks=True, self_destruct=True)
+                    )
         res: Union[str, pandas.DataFrame] = "failed to retrieve results"
         json_body = json.dumps(body, separators=(",", ":"))
         bundle_hash = hashlib.md5(json_body.encode()).hexdigest()
-        if cached is None or len(cached) < len(bundle):
-            if cached is None or not len(cached):
+        if cached is None or ncached < len(bundle):
+            if cached is None:
                 res = _prepare_results(json_body, bundle_hash, opts)
             else:
-                fresh = ~pyarrow.compute.is_in(
-                    bundle["text_hash"].to_list(), pyarrow.array(cached["text_hash"])
-                ).to_pandas(split_blocks=True, self_destruct=True)
+                fresh = ~bundle["text_hash"].isin(cached["text_hash"])
                 json_body = json.dumps([body[i] for i, ck in enumerate(fresh) if ck], separators=(",", ":"))
                 res = _prepare_results(json_body, hashlib.md5(json_body.encode()).hexdigest(), opts)
             if not isinstance(res, str):
-                if cached is not None:
-                    if res.ndim != cached.ndim or not all(cached.columns.isin(res.columns)):
+                if ncached:
+                    if res.ndim != len(cached_cols) or not pandas.Series(cached_cols).isin(res.columns).all():
                         json_body = json.dumps([body[i] for i, ck in enumerate(fresh) if ck], separators=(",", ":"))
                         cached = _prepare_results(json_body, hashlib.md5(json_body.encode()).hexdigest(), opts)
-                    res = pandas.concat([res, cached])
+                    if cached is not None and opts["collect_results"]:
+                        res = pandas.concat([res, cached])
                 if opts["cache"]:
                     writer = _get_writer(opts["cache_format"])
+                    schema = pyarrow.schema(
+                        (
+                            col,
+                            (
+                                pyarrow.string()
+                                if res[col].dtype == "O"
+                                else (
+                                    pyarrow.int32()
+                                    if col in ["summary.word_count", "summary.sentence_count"]
+                                    else pyarrow.float32()
+                                )
+                            ),
+                        )
+                        for col in res.columns
+                        if col not in ["id", "bin", *(opts["add"].keys() if opts["add"] else [])]
+                    )
                     for id_bin, d in res.groupby("bin"):
                         bin_dir = f"{opts['cache']}/bin={id_bin}"
                         os.makedirs(bin_dir, exist_ok=True)
                         writer(
-                            pyarrow.Table.from_pandas(d, preserve_index=False),
-                            f"{bin_dir}/{bundle_hash}-0.{opts['cache_format']}",
+                            pyarrow.Table.from_pandas(d, schema, preserve_index=False),
+                            f"{bin_dir}/fragment-{bundle_hash}-0.{opts['cache_format']}",
                         )
         else:
             res = cached
-        if not isinstance(res, str):
+        nres = len(res)
+        if not opts["collect_results"]:
+            reses.append(None)
+        elif not isinstance(res, str):
             if "text_hash" in res:
-                res = res.merge(bundle.loc[:, ["text_hash", "id"]], on="text_hash")
+                res = res.merge(bundle[["text_hash", "id"]], on="text_hash")
             reses.append(res)
         if queue is not None:
-            queue.put((0, None) if isinstance(res, str) else (len(res), res))
+            queue.put((0, None) if isinstance(res, str) else (nres + ncached, res))
         elif pb is not None:
             pb.update(len(bundle))
         if isinstance(res, str):
             raise RuntimeError(res)
-    return reses[0] if len(reses) == 1 else pandas.concat(reses, ignore_index=True, sort=False)
+    return reses
 
 
 def _prepare_results(body: str, bundle_hash: str, opts: dict):

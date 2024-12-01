@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 from glob import glob
+from importlib.util import find_spec
 from math import ceil
 from multiprocessing import current_process
 from tempfile import gettempdir
@@ -45,6 +46,7 @@ def request(
     clear_cache=False,
     request_cache=True,
     cores=1,
+    collect_results=True,
     in_memory: Union[bool, None] = None,
     verbose=False,
     progress_bar: Union[str, bool] = os.getenv("RECEPTIVITI_PB", "True"),
@@ -104,6 +106,7 @@ def request(
         request_cache (bool): If `False`, will not temporarily save raw requests for reuse
             within a day.
         cores (int): Number of CPU cores to use when processing multiple bundles.
+        collect_results (bool): If `False`, will not retain bundle results in memory for return.
         in_memory (bool | None): If `False`, will write bundles to disc, to be loaded when
             processed. Defaults to `True` when processing in parallel.
         verbose (bool): If `True`, will print status messages and preserve the progress bar.
@@ -115,6 +118,7 @@ def request(
             will for a file in the current directory or `~/Documents`.
             Passed to `readin_env` as `path`.
         cache (bool | str): Path to a cache directory, or `True` to use the default directory.
+            The cache is an Arrow dataset, and so requires the `pyarrow` package.
         cache_overwrite (bool): If `True`, will not check the cache for previously cached texts,
             but will store results in the cache (unlike `cache = False`).
         cache_format (str): File format of the cache, of available Arrow formats.
@@ -223,7 +227,7 @@ def request(
     if context != "written":
         if verbose:
             print(f"retrieving norming contexts ({perf_counter() - start_time:.4f})")
-        available_contexts: "list[str]" = norming(name_only=True, url=url, key=key, secret=secret, verbose=False)
+        available_contexts: List[str] = norming(name_only=True, url=url, key=key, secret=secret, verbose=False)
         if ("custom/" + context if custom_context else context) not in available_contexts:
             msg = f"norming context {context} is not on record or is not completed"
             raise RuntimeError(msg)
@@ -236,7 +240,7 @@ def request(
             frameworks = [frameworks]
         api_args["frameworks"] = [f for f in frameworks if f != "summary"]
     if api_args and "frameworks" in api_args:
-        arg_frameworks: "list[str]" = (
+        arg_frameworks: List[str] = (
             api_args["frameworks"].split(",") if isinstance(api_args["frameworks"], str) else api_args["frameworks"]
         )
         available_frameworks = get_frameworks(url=url, key=key, secret=secret)
@@ -248,6 +252,9 @@ def request(
             api_args["frameworks"] = ",".join(api_args["frameworks"])
 
     if isinstance(cache, str) and cache:
+        if find_spec("pyarrow") is None:
+            msg = "install the `pyarrow` package to use the cache"
+            raise RuntimeError(msg)
         if clear_cache and os.path.exists(cache):
             shutil.rmtree(cache, True)
         os.makedirs(cache, exist_ok=True)
@@ -276,6 +283,7 @@ def request(
         retry_limit=retry_limit,
         request_cache=request_cache,
         cores=cores,
+        collect_results=collect_results,
         in_memory=in_memory,
         verbose=verbose,
         progress_bar=progress_bar,
@@ -293,29 +301,17 @@ def request(
     )
 
     # finalize
-    if res is None or not res.shape[0]:
+    if collect_results and (res is None or not res.shape[0]):
         msg = "no results"
         raise RuntimeError(msg)
-    if isinstance(cache, str):
+    if cache:
         writer = _get_writer(cache_format)
-        schema = pyarrow.schema(
-            (
-                col,
-                (
-                    pyarrow.string()
-                    if res[col].dtype == "O"
-                    else (
-                        pyarrow.int32()
-                        if col in ["summary.word_count", "summary.sentence_count"]
-                        else pyarrow.float32()
-                    )
-                ),
-            )
-            for col in res.columns
-            if col not in ["id", "bin", *(api_args.keys() if api_args else [])]
-        )
         for bin_dir in glob(cache + "/bin=*/"):
-            _defragment_bin(bin_dir, cache_format, writer, schema)
+            _defragment_bin(bin_dir, cache_format, writer)
+    if not collect_results:
+        if verbose:
+            print(f"done ({perf_counter() - start_time:.4f})")
+        return None
     if verbose:
         print(f"preparing output ({perf_counter() - start_time:.4f})")
     data.set_index("id", inplace=True)
@@ -374,10 +370,10 @@ def request(
     return res
 
 
-def _defragment_bin(bin_dir: str, write_format: str, writer, schema: pyarrow.Schema):
+def _defragment_bin(bin_dir: str, write_format: str, writer):
     fragments = glob(f"{bin_dir}/*.{write_format}")
     if len(fragments) > 1:
-        data = pyarrow.dataset.dataset(fragments, schema, format=write_format, exclude_invalid_files=True).to_table()
+        data = pyarrow.dataset.dataset(fragments, format=write_format, exclude_invalid_files=True).to_table()
         nrows = data.num_rows
         n_chunks = max(1, ceil(nrows / 1e9))
         rows_per_chunk = max(1, ceil(nrows / n_chunks))

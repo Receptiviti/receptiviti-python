@@ -65,3 +65,25 @@ import os
 os.environ["RECEPTIVITI_KEY"]="32lettersandnumbers"
 os.environ["RECEPTIVITI_SECRET"]="56LettersAndNumbers"
 ```
+
+## Request Process
+
+The `request` function handles texts and results in several steps:
+
+1. Prepare bundles (split `text` into <= `bundle_size` and <= `bundle_byte_limit` bundles).
+   1. If `text` points to a directory or list of files, these will be read in later.
+   2. If `in_memory` is `False`, bundles are written to a temporary location, and read back in when the request is made.
+2. Get scores for texts within each bundle.
+   1. If texts are paths, or `in_memory` is `False`, will load texts.
+   2. If `cache` is set, will skip any texts with cached scores.
+   3. If `request_cache` is `True`, will check for a cached request.
+   4. If any texts need scoring and `make_request` is `True`, will send unscored texts to the API.
+3. If a request was made and `request_cache` is set, will cache the response.
+4. If `cache` is set, will write bundle scores to the cache.
+5. After requests are made, if `cache` is set, will defragment the cache (combine bundle results within partitions).
+6. If `collect_results` is `True`, will prepare results:
+   1. Will realign results with `text` (and `id` if provided).
+   2. If `output` is specified, will write realigned results to it.
+   3. Will drop additional columns (such as `custom` and `id` if not provided).
+   4. If `framework` is specified, will use it to select columns of the results.
+   5. Returns results.
