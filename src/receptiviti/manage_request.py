@@ -276,7 +276,7 @@ def _manage_request(
             def write_to_scratch(i: int, bundle: pandas.DataFrame):
                 temp = f"{scratch_cache}/{i}.json"
                 with open(temp, "wb") as scratch:
-                    pickle.dump(bundle, scratch)
+                    pickle.dump(bundle, scratch, -1)
                 return temp
 
             bundles = [write_to_scratch(i, b) for i, b in enumerate(bundles)]

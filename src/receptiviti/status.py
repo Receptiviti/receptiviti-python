@@ -33,7 +33,7 @@ def status(
       Response from the API server.
 
     Examples:
-        ```
+        ```python
         receptiviti.status()
         ```
     """

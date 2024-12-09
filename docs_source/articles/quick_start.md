@@ -6,14 +6,14 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.15.0
+    jupytext_version: 1.16.4
 kernelspec:
-  display_name: python 3
+  display_name: 'articles'
   language: python
-  name: python3
+  name: 'articles'
 ---
 
-```{code-cell} ipython3
+```{code-cell}
 :tags: [hide_cell]
 
 import os
@@ -37,7 +37,7 @@ pip install git+https://github.com/receptiviti/receptiviti-python.git
 
 Each time you start a Python session, load the package:
 
-```{code-cell} ipython3
+```{code-cell}
 import receptiviti
 ```
 
@@ -72,13 +72,13 @@ os.environ["RECEPTIVITI_SECRET"]="56LettersAndNumbers"
 
 Check that the API is reachable, and your credentials are recognized:
 
-```{code-cell} ipython3
+```{code-cell}
 receptiviti.status()
 ```
 
 If your credentials are not recognized, you'll get a response like this:
 
-```{code-cell} ipython3
+```{code-cell}
 receptiviti.status(key=123, secret=123)
 ```
 
@@ -90,19 +90,19 @@ If your texts are already in Python, you can enter them directly.
 
 These can be in a single character:
 
-```{code-cell} ipython3 tags=["hide_output"]
+```{code-cell}
 results = receptiviti.request("texts to score")
 ```
 
 Or a character vector:
 
-```{code-cell} ipython3 tags=["hide_output"]
+```{code-cell}
 results = receptiviti.request(["text one", "text two"])
 ```
 
 Or from a `DataFrame`:
 
-```{code-cell} ipython3 tags=["hide_output"]
+```{code-cell}
 import pandas
 data = pandas.DataFrame({"text": ["text a", "text b"]})
 
@@ -117,7 +117,7 @@ results = receptiviti.request(data, text_column="text")
 
 You can enter paths to files containing separate texts in each line:
 
-```{code-cell} ipython3 tags=["hide_output"]
+```{code-cell}
 # single
 results = receptiviti.request("files/file.txt")
 
@@ -130,7 +130,7 @@ results = receptiviti.request(
 Or to a comma delimited file with a column containing text.
 Here, the `text_column` argument specifies which column contains text:
 
-```{code-cell} ipython3 tags=["hide_output"]
+```{code-cell}
 # single
 results = receptiviti.request("files/file.csv", text_column="text")
 
@@ -143,14 +143,14 @@ results = receptiviti.request(
 
 Or you can point to a directory containing text files:
 
-```{code-cell} ipython3 tags=["hide_output"]
+```{code-cell}
 results = receptiviti.request(directory = "files")
 ```
 
 By default `.txt` files will be looked for, but you can specify
 `.csv` files with the `file_type` argument:
 
-```{code-cell} ipython3 tags=["hide_output"]
+```{code-cell}
 results = receptiviti.request(
   directory = "files",
   text_column="text", file_type="csv"
@@ -164,7 +164,7 @@ results = receptiviti.request(
 Results are returned as a `DataFrame`, with a row for each
 text, and columns for each framework variable:
 
-```{code-cell} ipython3
+```{code-cell}
 results = receptiviti.request("texts to score")
 results.iloc[:, :3]
 ```
@@ -174,14 +174,14 @@ which identifies unique texts, and is stored in the main cache.
 
 The entered text can also be included with the `return_text` argument:
 
-```{code-cell} ipython3
+```{code-cell}
 results = receptiviti.request("texts to score", return_text=True)
 results[["text_hash", "text"]]
 ```
 
 You can also select frameworks before they are all returned:
 
-```{code-cell} ipython3
+```{code-cell}
 results = receptiviti.request("texts to score", frameworks="liwc")
 results.iloc[:, :5]
 ```
@@ -189,7 +189,7 @@ results.iloc[:, :5]
 By default, a single framework will have column names without the framework name,
 but you can retain these with `framework_prefix=True`:
 
-```{code-cell} ipython3
+```{code-cell}
 results = receptiviti.request(
   "texts to score",
   frameworks="liwc", framework_prefix=True
@@ -204,7 +204,7 @@ including any duplicates or invalid entries.
 
 This means you can add the results object to original data:
 
-```{code-cell} ipython3
+```{code-cell}
 data = pandas.DataFrame({
   "id": [1, 2, 3, 4],
   "text": ["text a", float("nan"), "", "text a"]
@@ -218,12 +218,12 @@ data.join(results).iloc[:, :5]
 You can also provide a vector of unique IDs to be returned with results so they can be merged with
 other data:
 
-```{code-cell} ipython3
+```{code-cell}
 results = receptiviti.request(["text a", "text b"], ids=["a", "b"])
 results.iloc[:, :4]
 ```
 
-```{code-cell} ipython3
+```{code-cell}
 # merge with a new dataset
 data = pandas.DataFrame({
   "id": ["a1", "b1", "a2", "b2"],
@@ -236,7 +236,7 @@ data.join(results.set_index("id"), "type").iloc[:, :5]
 
 Results can also be saved to a `.csv` file:
 
-```{code-cell} ipython3
+```{code-cell}
 receptiviti.request("texts to score", "~/Documents/results.csv", overwrite=True)
 results = pandas.read_csv("~/Documents/results.csv")
 results.iloc[:, :4]

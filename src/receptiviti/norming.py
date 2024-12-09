@@ -55,18 +55,18 @@ def norming(
 
     Returns:
         Nothing if `delete` is `True`.
-        If `list_all` is `True`, a `list` containing context names (built-in and custom).
-        Otherwise, either a `pandas.DataFrame` containing all existing custom context statuses
+            If `list_all` is `True`, a `list` containing context names (built-in and custom).
+            Otherwise, either a `pandas.DataFrame` containing all existing custom context statuses
             (if no `name` is specified), a `pandas.Series` containing the the status of
             `name` (if `text` is not specified), a dictionary:
 
             - `initial_status`: Initial status of the context.
             - `first_pass`: Response after texts are sent the first time, or
-            `None` if the initial status is `pass_two`.
+              `None` if the initial status is `pass_two`.
             - `second_pass`: Response after texts are sent the second time.
 
     Examples:
-        ```
+        ```python
         # list all available contexts:
         receptiviti.norming()
 
@@ -79,7 +79,7 @@ def norming(
 
         Send tests to establish the context, just like
         the [receptiviti.request][receptiviti.request] function.
-        ```
+        ```python
         ## such as directly:
         receptiviti.norming("new_context", ["text to send", "another text"])
 

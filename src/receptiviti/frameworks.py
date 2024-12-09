@@ -30,7 +30,7 @@ def frameworks(
       List of framework names.
 
     Examples:
-        ```
+        ```python
         receptiviti.frameworks()
         ```
     """

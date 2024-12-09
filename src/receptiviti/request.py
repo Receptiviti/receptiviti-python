@@ -55,6 +55,7 @@ def request(
     text_as_paths=False,
     dotenv: Union[bool, str] = True,
     cache: Union[str, bool] = os.getenv("RECEPTIVITI_CACHE", ""),
+    cache_degragment=True,
     cache_overwrite=False,
     cache_format=os.getenv("RECEPTIVITI_CACHE_FORMAT", ""),
     key=os.getenv("RECEPTIVITI_KEY", ""),
@@ -119,6 +120,8 @@ def request(
             Passed to `readin_env` as `path`.
         cache (bool | str): Path to a cache directory, or `True` to use the default directory.
             The cache is an Arrow dataset, and so requires the `pyarrow` package.
+        cache_degragment (bool): If `False`, will not defragment the cache after writing new
+            results to it.
         cache_overwrite (bool): If `True`, will not check the cache for previously cached texts,
             but will store results in the cache (unlike `cache = False`).
         cache_format (str): File format of the cache, of available Arrow formats.
@@ -132,7 +135,7 @@ def request(
         Scores associated with each input text.
 
     Examples:
-        ```
+        ```python
         # score a single text
         single = receptiviti.request("a text to score")
 
@@ -152,6 +155,29 @@ def request(
         # score texts in a single file
         results = receptiviti.request("./path/to/file.csv", text_column = "text")
         ```
+
+    Request Process:
+        This function (along with the internal `_manage_request` function) handles texts and results in several steps:
+
+        1. Prepare bundles (split `text` into <= `bundle_size` and <= `bundle_byte_limit` bundles).
+            1. If `text` points to a directory or list of files, these will be read in later.
+            2. If `in_memory` is `False`, bundles are written to a temporary location,
+               and read back in when the request is made.
+        2. Get scores for texts within each bundle.
+            1. If texts are paths, or `in_memory` is `False`, will load texts.
+            2. If `cache` is set, will skip any texts with cached scores.
+            3. If `request_cache` is `True`, will check for a cached request.
+            4. If any texts need scoring and `make_request` is `True`, will send unscored texts to the API.
+        3. If a request was made and `request_cache` is set, will cache the response.
+        4. If `cache` is set, will write bundle scores to the cache.
+        5. After requests are made, if `cache` is set, will defragment the cache
+           (combine bundle results within partitions).
+        6. If `collect_results` is `True`, will prepare results:
+            1. Will realign results with `text` (and `id` if provided).
+            2. If `output` is specified, will write realigned results to it.
+            3. Will drop additional columns (such as `custom` and `id` if not provided).
+            4. If `framework` is specified, will use it to select columns of the results.
+            5. Returns results.
 
     Cache:
         If `cache` is specified, results for unique texts are saved in an Arrow database
@@ -304,7 +330,7 @@ def request(
     if collect_results and (res is None or not res.shape[0]):
         msg = "no results"
         raise RuntimeError(msg)
-    if cache:
+    if cache and cache_degragment:
         writer = _get_writer(cache_format)
         for bin_dir in glob(cache + "/bin=*/"):
             _defragment_bin(bin_dir, cache_format, writer)
