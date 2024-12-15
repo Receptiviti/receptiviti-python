@@ -1606,7 +1606,7 @@ but will store results in the cache (unlike <code>cache = False</code>).</p>
 <li>After requests are made, if <code>cache</code> is set, will defragment the cache
    (combine bundle results within partitions).</li>
 <li>If <code>collect_results</code> is <code>True</code>, will prepare results:<ol>
-<li>Will realign results with <code>text</code> (and <code>id</code> if provided).</li>
+<li>Will realign results with <code>text</code> (and <code>ids</code> if provided).</li>
 <li>If <code>output</code> is specified, will write realigned results to it.</li>
 <li>Will drop additional columns (such as <code>custom</code> and <code>id</code> if not provided).</li>
 <li>If <code>framework</code> is specified, will use it to select columns of the results.</li>
@@ -2186,7 +2186,7 @@ a check that <code>__name__</code> equals <code>"__main__"</code>
 </span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="sd">        5. After requests are made, if `cache` is set, will defragment the cache</span>
 </span><span id="__span-0-174"><a id="__codelineno-0-174" name="__codelineno-0-174"></a><span class="sd">           (combine bundle results within partitions).</span>
 </span><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="sd">        6. If `collect_results` is `True`, will prepare results:</span>
-</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="sd">            1. Will realign results with `text` (and `id` if provided).</span>
+</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="sd">            1. Will realign results with `text` (and `ids` if provided).</span>
 </span><span id="__span-0-177"><a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="sd">            2. If `output` is specified, will write realigned results to it.</span>
 </span><span id="__span-0-178"><a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="sd">            3. Will drop additional columns (such as `custom` and `id` if not provided).</span>
 </span><span id="__span-0-179"><a id="__codelineno-0-179" name="__codelineno-0-179"></a><span class="sd">            4. If `framework` is specified, will use it to select columns of the results.</span>

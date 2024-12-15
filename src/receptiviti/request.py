@@ -173,7 +173,7 @@ def request(
         5. After requests are made, if `cache` is set, will defragment the cache
            (combine bundle results within partitions).
         6. If `collect_results` is `True`, will prepare results:
-            1. Will realign results with `text` (and `id` if provided).
+            1. Will realign results with `text` (and `ids` if provided).
             2. If `output` is specified, will write realigned results to it.
             3. Will drop additional columns (such as `custom` and `id` if not provided).
             4. If `framework` is specified, will use it to select columns of the results.

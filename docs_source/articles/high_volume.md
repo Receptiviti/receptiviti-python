@@ -75,7 +75,7 @@ db_dir = base_dir + "test_results"
 makedirs(db_dir, exist_ok=True)
 
 receptiviti.request(
-  text_dir, collect_results=False, cache=db_dir, request_cache=False
+  directory=text_dir, collect_results=False, cache=db_dir, request_cache=False
 )
 ```
 
@@ -83,7 +83,7 @@ Results are now available in the cache directory, which you can load in using th
 
 ```{code-cell}
 # adding make_request=False just ensures requests are not made if not found
-results = receptiviti.request(text_dir, cache=db_dir, make_request=False)
+results = receptiviti.request(directory=text_dir, cache=db_dir, make_request=False)
 results.iloc[:, 0:3]
 ```
 
@@ -99,13 +99,13 @@ res_dir = base_dir + "text_results_manual"
 makedirs(res_dir, exist_ok=True)
 
 # using the same files as before
-files = os.listdir(text_dir)
+files = [f"{text_dir}/{file}" for file in os.listdir(text_dir)]
 
 # process 5 files at a time
 for i in range(0, len(files), 5):
   file_subset = files[i : i + 5]
   results = receptiviti.request(
-    file_subset, ids=file_subset, cores=1, cache=False, request_cache=False
+    files=file_subset, ids=file_subset, cores=1, cache=False, request_cache=False
   )
   results.to_csv(f"{res_dir}/files_{i}-{i + 5}.csv.xz", index=False)
 ```

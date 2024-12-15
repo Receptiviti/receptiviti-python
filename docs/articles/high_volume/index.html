@@ -1222,7 +1222,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </style>
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1a810cbb">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c405bdc9">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1233,7 +1233,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f3847a64">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=619d4636">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1255,7 +1255,7 @@ which means only <code>bundle_size</code> * <code>cores</code> texts are loaded 
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=f381bd33">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=bf796bbf">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1298,7 +1298,7 @@ for i in range(10):
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9488ea88">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c7bb38ac">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1310,7 +1310,7 @@ for i in range(10):
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=a57badae">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=fcd35ccf">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1334,7 +1334,7 @@ for i in range(10):
 <span class="n">makedirs</span><span class="p">(</span><span class="n">db_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">receptiviti</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
-  <span class="n">text_dir</span><span class="p">,</span> <span class="n">collect_results</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">db_dir</span><span class="p">,</span> <span class="n">request_cache</span><span class="o">=</span><span class="kc">False</span>
+  <span class="n">directory</span><span class="o">=</span><span class="n">text_dir</span><span class="p">,</span> <span class="n">collect_results</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">db_dir</span><span class="p">,</span> <span class="n">request_cache</span><span class="o">=</span><span class="kc">False</span>
 <span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2">import receptiviti
@@ -1343,7 +1343,7 @@ db_dir = base_dir + "test_results"
 makedirs(db_dir, exist_ok=True)
 
 receptiviti.request(
-  text_dir, collect_results=False, cache=db_dir, request_cache=False
+  directory=text_dir, collect_results=False, cache=db_dir, request_cache=False
 )</div>
 </div>
 </div>
@@ -1351,7 +1351,7 @@ receptiviti.request(
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a72d82e8">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1c52b17e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1362,7 +1362,7 @@ receptiviti.request(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=67dae1ab">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e9e1906f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1381,11 +1381,11 @@ receptiviti.request(
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="c1"># adding make_request=False just ensures requests are not made if not found</span>
-<span class="n">results</span> <span class="o">=</span> <span class="n">receptiviti</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">text_dir</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">db_dir</span><span class="p">,</span> <span class="n">make_request</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">receptiviti</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">text_dir</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">db_dir</span><span class="p">,</span> <span class="n">make_request</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">results</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-3"># adding make_request=False just ensures requests are not made if not found
-results = receptiviti.request(text_dir, cache=db_dir, make_request=False)
+results = receptiviti.request(directory=text_dir, cache=db_dir, make_request=False)
 results.iloc[:, 0:3]</div>
 </div>
 </div>
@@ -1491,7 +1491,7 @@ results.iloc[:, 0:3]</div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=aee5d6a1">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=733c470b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1504,7 +1504,7 @@ results.iloc[:, 0:3]</div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4b5fde31">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=48d50fd9">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1526,13 +1526,13 @@ results.iloc[:, 0:3]</div>
 <span class="n">makedirs</span><span class="p">(</span><span class="n">res_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="c1"># using the same files as before</span>
-<span class="n">files</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">text_dir</span><span class="p">)</span>
+<span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">text_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">text_dir</span><span class="p">)]</span>
 
 <span class="c1"># process 5 files at a time</span>
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">),</span> <span class="mi">5</span><span class="p">):</span>
   <span class="n">file_subset</span> <span class="o">=</span> <span class="n">files</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">5</span><span class="p">]</span>
   <span class="n">results</span> <span class="o">=</span> <span class="n">receptiviti</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
-    <span class="n">file_subset</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="n">file_subset</span><span class="p">,</span> <span class="n">cores</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">request_cache</span><span class="o">=</span><span class="kc">False</span>
+    <span class="n">files</span><span class="o">=</span><span class="n">file_subset</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="n">file_subset</span><span class="p">,</span> <span class="n">cores</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">request_cache</span><span class="o">=</span><span class="kc">False</span>
   <span class="p">)</span>
   <span class="n">results</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">res_dir</span><span class="si">}</span><span class="s2">/files_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">5</span><span class="si">}</span><span class="s2">.csv.xz"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
@@ -1540,13 +1540,13 @@ results.iloc[:, 0:3]</div>
 makedirs(res_dir, exist_ok=True)
 
 # using the same files as before
-files = os.listdir(text_dir)
+files = [f"{text_dir}/{file}" for file in os.listdir(text_dir)]
 
 # process 5 files at a time
 for i in range(0, len(files), 5):
   file_subset = files[i : i + 5]
   results = receptiviti.request(
-    file_subset, ids=file_subset, cores=1, cache=False, request_cache=False
+    files=file_subset, ids=file_subset, cores=1, cache=False, request_cache=False
   )
   results.to_csv(f"{res_dir}/files_{i}-{i + 5}.csv.xz", index=False)</div>
 </div>
@@ -1555,7 +1555,7 @@ for i in range(0, len(files), 5):
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=be5f43c0">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=be5e0860">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1566,7 +1566,7 @@ for i in range(0, len(files), 5):
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=1d8065e3">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=55a8ddc3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1628,33 +1628,33 @@ read_csv(f"{res_dir}/files_0-5.csv.xz").iloc[:, 0:3]</div>
 <tbody>
 <tr>
 <th>0</th>
-<td>example_0.txt</td>
-<td>d64abeb882f39496db62fc1efe68e535</td>
-<td>3</td>
+<td>../../../test_texts/example_0.txt</td>
+<td>b88ba15b5436224a66b02f13b11b13db</td>
+<td>4</td>
 </tr>
 <tr>
 <th>1</th>
-<td>example_1.txt</td>
-<td>29b8f4db53466ab0f1a8c00320163a49</td>
-<td>3</td>
+<td>../../../test_texts/example_1.txt</td>
+<td>4ab51432a48a54d4fd780d226d0c3f1c</td>
+<td>4</td>
 </tr>
 <tr>
 <th>2</th>
-<td>example_2.txt</td>
-<td>2e558b39f1788d89dd8ff4c54f3e8d98</td>
-<td>3</td>
+<td>../../../test_texts/example_2.txt</td>
+<td>786744d45ec2d0e302394dc2ececa004</td>
+<td>4</td>
 </tr>
 <tr>
 <th>3</th>
-<td>example_3.txt</td>
-<td>41f5570eae91ab3f9792fe11febbc591</td>
-<td>3</td>
+<td>../../../test_texts/example_3.txt</td>
+<td>bb2ced7fa2cf67ec2aa974bac3cfb609</td>
+<td>4</td>
 </tr>
 <tr>
 <th>4</th>
-<td>example_4.txt</td>
-<td>039d1cd61e9daecb0e39de17d898eb6d</td>
-<td>3</td>
+<td>../../../test_texts/example_4.txt</td>
+<td>507616854eb89e3d12e49001fe4333c8</td>
+<td>4</td>
 </tr>
 </tbody>
 </table>
