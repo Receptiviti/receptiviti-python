@@ -384,9 +384,10 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label="Norming Contexts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#built-in" class="md-nav__link">
     <span class="md-ellipsis">
       Built-In
@@ -394,13 +395,18 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#custom" class="md-nav__link">
     <span class="md-ellipsis">
       Custom
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -800,9 +806,10 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label="Norming Contexts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#built-in" class="md-nav__link">
     <span class="md-ellipsis">
       Built-In
@@ -810,13 +817,18 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#custom" class="md-nav__link">
     <span class="md-ellipsis">
       Custom
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1306,7 +1318,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </style>
 <!-- End of mermaid configuration --><div class="jupyter-wrapper">
 <div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=90dcef87">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=70d5454a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1314,12 +1326,12 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h1 id="special-cases">Special Cases<a class="anchor-link" href="#special-cases">¶</a></h1><h2 id="norming-contexts">Norming Contexts<a class="anchor-link" href="#norming-contexts">¶</a></h2><p>Some measures are <a href="https://docs.receptiviti.com/the-receptiviti-api/normed-vs-dictionary-counted-measures" rel="noreferrer" target="_blank">normed</a> against a sample of text.
 These samples may be more or less appropriate to your texts.</p>
-<h2 id="built-in">Built-In<a class="anchor-link" href="#built-in">¶</a></h2><p>The default context is meant for general written text, and there is another built-in context for general spoken text:</p>
+<h3 id="built-in">Built-In<a class="anchor-link" href="#built-in">¶</a></h3><p>The default context is meant for general written text, and there is another built-in context for general spoken text:</p>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=cb78a0c1">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f5e34827">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1457,20 +1469,20 @@ pandas.concat([written, spoken], ignore_index=True)[differing].rename(
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6cf78c1d">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=dd5f3ecb">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="custom">Custom<a class="anchor-link" href="#custom">¶</a></h2><p>You can also norm against your own sample, which involves first establishing a context,
+<h3 id="custom">Custom<a class="anchor-link" href="#custom">¶</a></h3><p>You can also norm against your own sample, which involves first establishing a context,
 then scoring against it.</p>
 <p>Use the <code>receptiviti.norming</code> function to establish a custom context:</p>
 </div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=430c11c3">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=20257892">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1569,7 +1581,7 @@ context_status["second_pass"]</div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1f641583">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=518bc16a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1580,7 +1592,7 @@ context_status["second_pass"]</div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=de29a513">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=7555b639">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1687,7 +1699,7 @@ custom[differing].rename({0: "custom"}).T</div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=98d9a6e5">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=63d4b7a2">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1709,7 +1721,7 @@ which means only <code>bundle_size</code> * <code>cores</code> texts are loaded 
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=ebea556c">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=025f9abd">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1752,7 +1764,7 @@ for i in range(10):
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=f5bfaac7">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=dc386382">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1764,7 +1776,7 @@ for i in range(10):
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=d8abdcc4">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=6b0b7f2f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1805,7 +1817,7 @@ receptiviti.request(
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=97230a26">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=60f5aa5b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1816,7 +1828,7 @@ receptiviti.request(
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=0585b3ec">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9daf9b69">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1945,7 +1957,7 @@ results.iloc[:, 0:3]</div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6a2c9e28">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=adb28e3a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1958,7 +1970,7 @@ results.iloc[:, 0:3]</div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=5d4fd51a">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=9f656c71">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2009,7 +2021,7 @@ for i in range(0, len(files), 5):
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=caf7a401">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=d558b02e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -2020,7 +2032,7 @@ for i in range(0, len(files), 5):
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=875e93bc">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=cdd5ec87">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>

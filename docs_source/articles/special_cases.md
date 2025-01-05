@@ -33,7 +33,7 @@ rmtree("../test_text_results", True)
 Some measures are <a href="https://docs.receptiviti.com/the-receptiviti-api/normed-vs-dictionary-counted-measures" rel="noreferrer" target="_blank">normed</a> against a sample of text.
 These samples may be more or less appropriate to your texts.
 
-## Built-In
+### Built-In
 
 The default context is meant for general written text, and there is another built-in context for general spoken text:
 
@@ -53,7 +53,7 @@ pandas.concat([written, spoken], ignore_index=True)[differing].rename(
 ).T
 ```
 
-## Custom
+### Custom
 
 You can also norm against your own sample, which involves first establishing a context,
 then scoring against it.
