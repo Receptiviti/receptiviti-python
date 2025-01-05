@@ -8,12 +8,10 @@ jupytext:
     format_version: 0.13
     jupytext_version: 1.16.4
 kernelspec:
-  display_name: 'articles'
+  display_name: '-'
   language: python
-  name: 'articles'
+  name: '-'
 ---
-
-# High Volume
 
 ```{code-cell}
 :tags: [hide_cell]
@@ -22,14 +20,70 @@ import os
 os.environ["RECEPTIVITI_PB"]="False"
 
 import receptiviti
-receptiviti.readin_env()
-os.environ["RECEPTIVITI_URL"]=os.environ["RECEPTIVITI_URL_TEST"]
-os.environ["RECEPTIVITI_KEY"]=os.environ["RECEPTIVITI_KEY_TEST"]
-os.environ["RECEPTIVITI_SECRET"]=os.environ["RECEPTIVITI_SECRET_TEST"]
 
+receptiviti.norming("custom_example", delete=True)
 from shutil import rmtree
 rmtree("../test_text_results", True)
 ```
+
+# Special Cases
+
+## Norming Contexts
+
+Some measures are <a href="https://docs.receptiviti.com/the-receptiviti-api/normed-vs-dictionary-counted-measures" rel="noreferrer" target="_blank">normed</a> against a sample of text.
+These samples may be more or less appropriate to your texts.
+
+## Built-In
+
+The default context is meant for general written text, and there is another built-in context for general spoken text:
+
+```{code-cell}
+import receptiviti
+import pandas
+
+text = "Text to be normed differently."
+written = receptiviti.request(text, version="v2")
+spoken = receptiviti.request(text, version="v2", context="spoken")
+
+# select a few categories that differ between contexts
+differing = written.columns[(written != spoken).iloc[0]][0:10]
+
+pandas.concat([written, spoken], ignore_index=True)[differing].rename(
+    {0: "written", 1: "spoken"}
+).T
+```
+
+## Custom
+
+You can also norm against your own sample, which involves first establishing a context,
+then scoring against it.
+
+Use the `receptiviti.norming` function to establish a custom context:
+
+```{code-cell}
+context_text = ["Text with normed in it.", "Text with differently in it."]
+
+# set lower word count filter for this toy sample
+context_status = receptiviti.norming(
+    name="custom_example",
+    text=context_text,
+    options={"word_count_filter": 1},
+    verbose=False,
+)
+
+# the `second_pass` result shows what was analyzed
+context_status["second_pass"]
+```
+
+Then use the `custom_context` argument to specify that norming context when scoring:
+
+```{code-cell}
+custom = receptiviti.request(text, version="v2", custom_context="custom_example")
+
+custom[differing].rename({0: "custom"}).T
+```
+
+## High Volume
 
 The Receptiviti API has <a href="https://docs.receptiviti.com/api-reference/framework-bulk" rel="noreferrer" target="_blank">limits</a>
 on bundle requests, so the `receptiviti.request()` function splits texts into acceptable bundles, to be spread across multiple requests.
@@ -41,7 +95,7 @@ The basic way to work around this limitation is to fully process smaller chunks 
 
 There are a few ways to avoid loading all texts and results.
 
-## Cache as Output
+### Cache as Output
 
 Setting the `collect_results` argument to `False` avoids retaining all batch results in memory as they are receive, but means
 results are not returned, so the they have to be collected in the cache.
@@ -87,7 +141,7 @@ results = receptiviti.request(directory=text_dir, cache=db_dir, make_request=Fal
 results.iloc[:, 0:3]
 ```
 
-## Manual Chunking
+### Manual Chunking
 
 A more flexible approach would be to process smaller chunks of text normally, and handle loading and storing results yourself.
 

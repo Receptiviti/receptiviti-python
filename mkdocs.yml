@@ -60,7 +60,7 @@ nav:
   - Home: README.md
   - Get Started: articles/quick_start.ipynb
   - Use Cases:
-      - articles/high_volume.ipynb
+      - articles/special_cases.ipynb
   - References:
       - functions/request.md
       - functions/status.md
@@ -76,4 +76,4 @@ nav:
       - Changelog: CHANGELOG.md
 exclude_docs: |
   articles/quick_start.md
-  articles/high_volume.md
+  articles/special_cases.md

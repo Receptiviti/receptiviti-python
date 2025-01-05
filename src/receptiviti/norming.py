@@ -30,7 +30,7 @@ def norming(
 
     Custom norming contexts can be used to process later texts by specifying the
     `custom_context` API argument in the `receptiviti.request` function (e.g.,
-    `receptiviti.request("text to score", version = "v2", options = {"custom_context": "norm_name"})`,
+    `receptiviti.request("text to score", version="v2", custom_context="norm_name")`,
     where `norm_name` is the name you set here).
 
     Args:
@@ -50,12 +50,12 @@ def norming(
         secret (str): Your API secret.
         url (str): The URL of the API; defaults to `https://api.receptiviti.com`.
         verbose (bool): If `False`, will not show status messages.
-        **kwargs (Any): Additional arguments to specify how tests are read in and processed;
+        **kwargs (Any): Additional arguments to specify how texts are read in and processed;
             see [receptiviti.request][receptiviti.request].
 
     Returns:
         Nothing if `delete` is `True`.
-            If `list_all` is `True`, a `list` containing context names (built-in and custom).
+            If `name_only` is `True`, a `list` containing context names (built-in and custom).
             Otherwise, either a `pandas.DataFrame` containing all existing custom context statuses
             (if no `name` is specified), a `pandas.Series` containing the the status of
             `name` (if `text` is not specified), a dictionary:
@@ -70,14 +70,11 @@ def norming(
         # list all available contexts:
         receptiviti.norming()
 
-        # list current custom contexts:
-        receptiviti.norming()
-
         # create or get the status of a single context:
         receptiviti.norming("new_context")
         ```
 
-        Send tests to establish the context, just like
+        Send texts to establish the context, just like
         the [receptiviti.request][receptiviti.request] function.
         ```python
         ## such as directly:

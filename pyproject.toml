@@ -86,8 +86,8 @@ dependencies = [
 [tool.hatch.envs.docs.scripts]
 article-setup = "jupytext --set-kernel - docs_source/articles/quick_start.md"
 article = "jupytext --to notebook --execute docs_source/articles/quick_start.md"
-article-setup_hv = "jupytext --set-kernel - docs_source/articles/high_volume.md"
-article_hv = "jupytext --to notebook --execute docs_source/articles/high_volume.md"
+article-setup_sc = "jupytext --set-kernel - docs_source/articles/special_cases.md"
+article_sc = "jupytext --to notebook --execute docs_source/articles/special_cases.md"
 build = "mkdocs build --clean --strict"
 serve = "mkdocs serve --dev-addr localhost:8000 --clean"
 
