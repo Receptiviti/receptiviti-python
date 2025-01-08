@@ -48,6 +48,7 @@ spoken = receptiviti.request(text, version="v2", context="spoken")
 # select a few categories that differ between contexts
 differing = written.columns[(written != spoken).iloc[0]][0:10]
 
+# note that the text hashes are sensitive to the set context
 pandas.concat([written, spoken], ignore_index=True)[differing].rename(
     {0: "written", 1: "spoken"}
 ).T

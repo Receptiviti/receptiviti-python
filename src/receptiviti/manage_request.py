@@ -211,13 +211,13 @@ def _manage_request(
                     msg = f"one of your texts is over the bundle size limit ({bundle_byte_limit / 1e6} MB)"
                     raise RuntimeError(msg)
                 if (current + size) > bundle_byte_limit:
-                    bundles.append(group[start:end])
-                    start = end = end + 1
+                    bundles.append(group.iloc[start:end])
+                    start = end
                     current = size
                 else:
-                    end += 1
                     current += size
-            bundles.append(group[start:])
+                end += 1
+            bundles.append(group.iloc[start:])
         else:
             bundles.append(group)
     n_bundles = len(bundles)
