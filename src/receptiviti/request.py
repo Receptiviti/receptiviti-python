@@ -63,7 +63,7 @@ def request(
     url=os.getenv("RECEPTIVITI_URL", ""),
     version=os.getenv("RECEPTIVITI_VERSION", ""),
     endpoint=os.getenv("RECEPTIVITI_ENDPOINT", ""),
-) -> pandas.DataFrame | None:
+) -> Union[pandas.DataFrame, None]:
     """
     Send texts to be scored by the API.
 
