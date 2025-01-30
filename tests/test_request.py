@@ -114,14 +114,14 @@ class TestRequest:
                         txt.write(text)
                     csv_file = f"{tempdir}/{nth_text}.csv"
                     csv_files.append(csv_file)
-                    pandas.DataFrame({"text": [text]}).to_csv(csv_file, encoding="cp1252")
+                    pandas.DataFrame({"raw_text": [text]}).to_csv(csv_file, encoding="cp1252")
             res_misencode = receptiviti.request(tempdir, encoding="utf-8", return_text=True, cache=cache)
             res_multi = receptiviti.request(tempdir, return_text=True, cache=cache)
             res_multi_txt = receptiviti.request(txt_files, cache=cache)
-            res_multi_csv = receptiviti.request(csv_files, text_column="text", cache=cache)
+            res_multi_csv = receptiviti.request(csv_files, text_column="raw_text", cache=cache)
             res_multi_txt_collapse = receptiviti.request(txt_files, collapse_lines=True, cache=cache)
             res_multi_csv_collapse = receptiviti.request(
-                csv_files, text_column="text", collapse_lines=True, cache=cache
+                csv_files, text_column="raw_text", collapse_lines=True, cache=cache
             )
         assert not all((a == b for a, b in zip(res_multi["text"], res_misencode["text"])))
         assert res_single["summary.word_count"].sum() == res_multi["summary.word_count"].sum()

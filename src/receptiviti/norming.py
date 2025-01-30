@@ -39,7 +39,7 @@ def norming(
         text (str): Text to be processed and used as the custom norming context.
             Not providing text will return the status of the named norming context.
         options (dict): Options to set for the norming context (e.g.,
-            `{"word_count_filter": 350, "punctuation_filter": .25}`).
+            `{"min_word_count": 350, "max_punctuation": .25}`).
         delete (bool): If `True`, will request removal of the `name` context.
         name_only (bool): If `True`, will return a list of context names only, including those of
             build-in contexts.
@@ -153,9 +153,7 @@ def norming(
         status = pandas.json_normalize(req.json()).iloc[0]
         if options:
             for param, value in options.items():
-                if param not in status:
-                    warnings.warn(UserWarning(f"option {param} was not set"), stacklevel=2)
-                elif value != status[param]:
+                if param in status and value != status[param]:
                     warnings.warn(UserWarning(f"set option {param} does not match the requested value"), stacklevel=2)
     if verbose:
         print(f"status of {name}:")
@@ -181,7 +179,7 @@ def norming(
             to_norming=True,
         )
     second_pass = None
-    if first_pass is not None and (first_pass["analyzed"] == 0).all():
+    if first_pass is not None and (first_pass["analyzed_samples"] == 0).all():
         warnings.warn(
             UserWarning("no texts were successfully analyzed in the first pass, so second pass was skipped"),
             stacklevel=2,
@@ -198,6 +196,6 @@ def norming(
             url=f"{url}{name}/two",
             to_norming=True,
         )
-    if second_pass is None or (second_pass["analyzed"] == 0).all():
+    if second_pass is None or (second_pass["analyzed_samples"] == 0).all():
         warnings.warn(UserWarning("no texts were successfully analyzed in the second pass"), stacklevel=2)
     return {"initial_stats": status, "first_pass": first_pass, "second_pass": second_pass}

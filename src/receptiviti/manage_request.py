@@ -13,7 +13,7 @@ from glob import glob
 from multiprocessing import Process, Queue, current_process
 from tempfile import TemporaryDirectory, gettempdir
 from time import perf_counter, sleep, time
-from typing import List, Union
+from typing import List, Union, Tuple
 
 import numpy
 import pandas
@@ -65,7 +65,7 @@ def _manage_request(
     version=os.getenv("RECEPTIVITI_VERSION", ""),
     endpoint=os.getenv("RECEPTIVITI_ENDPOINT", ""),
     to_norming=False,
-) -> tuple[pandas.DataFrame, Union[pandas.DataFrame, None], bool]:
+) -> Tuple[pandas.DataFrame, Union[pandas.DataFrame, None], bool]:
     if cores > 1 and current_process().name != "MainProcess":
         return (pandas.DataFrame(), None, False)
     start_time = perf_counter()
@@ -168,9 +168,7 @@ def _manage_request(
                 ids = text["ids"].to_list()
             elif id_column in text:
                 ids = text[id_column].to_list()
-            if text_column is None:
-                text_column = "text"
-            text = text[text_column].to_list()
+            text = text["text"].to_list()
         text_is_path = False
     if ids is None and text_is_path:
         ids = text

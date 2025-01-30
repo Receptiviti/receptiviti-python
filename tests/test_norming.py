@@ -23,8 +23,7 @@ class TestStatus:
     def test_updating(self):
         norming_context = "short_text"
         receptiviti.norming(norming_context, delete=True)
-        with pytest.warns(UserWarning, match="option invalid_option was not set"):
-            receptiviti.norming(norming_context, options={"word_count_filter": 1, "invalid_option": 1})
+        receptiviti.norming(norming_context, options={"min_word_count": 1})
         with pytest.raises(RuntimeError, match="is not on record"):
             receptiviti.request("a text to score", version="v2", custom_context=norming_context)
         receptiviti.norming(norming_context, "new text to add")

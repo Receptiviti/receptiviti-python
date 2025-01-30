@@ -68,7 +68,7 @@ context_text = ["Text with normed in it.", "Text with differently in it."]
 context_status = receptiviti.norming(
     name="custom_example",
     text=context_text,
-    options={"word_count_filter": 1},
+    options={"min_word_count": 1},
     verbose=False,
 )
 
