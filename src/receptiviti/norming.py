@@ -115,6 +115,9 @@ def norming(
         msg = f"failed to make custom norming list request: {req.status_code} {req.reason}"
         raise RuntimeError(msg)
     norms = pandas.json_normalize(req.json())
+    if len(norms) and "name" not in norms:
+        msg = "`name` column not found in response with columns " + ", ".join(norms.columns)
+        raise RuntimeError(msg)
     if not name:
         if len(norms):
             if verbose:
