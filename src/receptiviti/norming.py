@@ -161,7 +161,7 @@ def norming(
     if verbose:
         print(f"status of {name}:")
         print(status)
-    if not text:
+    if text is None:
         return status
     status_step = status["status"]
     if status_step == "completed":
