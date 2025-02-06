@@ -164,23 +164,20 @@ def norming(
     if text is None:
         return status
     status_step = status["status"]
-    if status_step == "completed":
-        warnings.warn(UserWarning("status is `completes`, so cannot send text"), stacklevel=2)
+    if status_step != "created":
+        warnings.warn(UserWarning("status is not `created`, so cannot send text"), stacklevel=2)
         return {"initial_status": status, "first_pass": None, "second_pass": None}
-    if status_step == "pass_two":
-        first_pass = None
-    else:
-        if verbose:
-            print(f"sending first-pass sample for {name}")
-        _, first_pass, _ = _manage_request(
-            text=text,
-            **kwargs,
-            dotenv=dotenv,
-            key=key,
-            secret=secret,
-            url=f"{url}{name}/one",
-            to_norming=True,
-        )
+    if verbose:
+        print(f"sending first-pass sample for {name}")
+    _, first_pass, _ = _manage_request(
+        text=text,
+        **kwargs,
+        dotenv=dotenv,
+        key=key,
+        secret=secret,
+        url=f"{url}{name}/one",
+        to_norming=True,
+    )
     second_pass = None
     if first_pass is not None and (first_pass["analyzed_samples"] == 0).all():
         warnings.warn(
