@@ -47,7 +47,7 @@ plugins:
         remove_cell_tags:
           - hide_cell
 docs_dir: 'docs_source'
-site_dir: 'docs'
+site_dir: 'docs/v/dev'
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
@@ -69,7 +69,7 @@ nav:
       - functions/frameworks.md
   - Test Coverage: coverage/index.html
   - Versions:
-      - Development: https://receptiviti.github.io/receptiviti-python/
+      - Development: https://receptiviti.github.io/receptiviti-python/v/dev/
       - 0.1.2: https://receptiviti.github.io/receptiviti-python/v/0.1.2/
       - 0.1.1: https://receptiviti.github.io/receptiviti-python/v/0.1.1/
       - 0.1.0: https://receptiviti.github.io/receptiviti-python/v/0.1.0/
@@ -77,3 +77,4 @@ nav:
 exclude_docs: |
   articles/quick_start.md
   articles/special_cases.md
+  articles/commencement_example.md
