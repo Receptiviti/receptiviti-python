@@ -61,6 +61,7 @@ nav:
   - Get Started: articles/quick_start.ipynb
   - Use Cases:
       - articles/special_cases.ipynb
+      - articles/commencement_example.ipynb
   - References:
       - functions/request.md
       - functions/status.md

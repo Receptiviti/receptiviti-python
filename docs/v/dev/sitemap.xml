@@ -2,38 +2,42 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://receptiviti.github.io/receptiviti-python/</loc>
-         <lastmod>2025-02-20</lastmod>
+         <lastmod>2025-03-03</lastmod>
     </url>
     <url>
          <loc>https://receptiviti.github.io/receptiviti-python/CHANGELOG/</loc>
-         <lastmod>2025-02-20</lastmod>
+         <lastmod>2025-03-03</lastmod>
+    </url>
+    <url>
+         <loc>https://receptiviti.github.io/receptiviti-python/articles/commencement_example/</loc>
+         <lastmod>2025-03-03</lastmod>
     </url>
     <url>
          <loc>https://receptiviti.github.io/receptiviti-python/articles/quick_start/</loc>
-         <lastmod>2025-02-20</lastmod>
+         <lastmod>2025-03-03</lastmod>
     </url>
     <url>
          <loc>https://receptiviti.github.io/receptiviti-python/articles/special_cases/</loc>
-         <lastmod>2025-02-20</lastmod>
+         <lastmod>2025-03-03</lastmod>
     </url>
     <url>
          <loc>https://receptiviti.github.io/receptiviti-python/functions/frameworks/</loc>
-         <lastmod>2025-02-20</lastmod>
+         <lastmod>2025-03-03</lastmod>
     </url>
     <url>
          <loc>https://receptiviti.github.io/receptiviti-python/functions/norming/</loc>
-         <lastmod>2025-02-20</lastmod>
+         <lastmod>2025-03-03</lastmod>
     </url>
     <url>
          <loc>https://receptiviti.github.io/receptiviti-python/functions/readin_env/</loc>
-         <lastmod>2025-02-20</lastmod>
+         <lastmod>2025-03-03</lastmod>
     </url>
     <url>
          <loc>https://receptiviti.github.io/receptiviti-python/functions/request/</loc>
-         <lastmod>2025-02-20</lastmod>
+         <lastmod>2025-03-03</lastmod>
     </url>
     <url>
          <loc>https://receptiviti.github.io/receptiviti-python/functions/status/</loc>
-         <lastmod>2025-02-20</lastmod>
+         <lastmod>2025-03-03</lastmod>
     </url>
 </urlset>

@@ -76,9 +76,11 @@ exclude = [
 
 [tool.hatch.envs.docs]
 dependencies = [
+  "matplotlib",
   "mkdocs",
   "mkdocstrings[python]",
   "mkdocs-material",
+  "nltk",
   "jupytext",
   "ipykernel",
   "mkdocs-jupyter",
@@ -88,6 +90,8 @@ article-setup = "jupytext --set-kernel - docs_source/articles/quick_start.md"
 article = "jupytext --to notebook --execute docs_source/articles/quick_start.md"
 article-setup_sc = "jupytext --set-kernel - docs_source/articles/special_cases.md"
 article_sc = "jupytext --to notebook --execute docs_source/articles/special_cases.md"
+article-setup_ce = "jupytext --set-kernel - docs_source/articles/commencement_example.md"
+article_ce = "jupytext --to notebook --execute docs_source/articles/commencement_example.md"
 build = "mkdocs build --clean --strict"
 serve = "mkdocs serve --dev-addr localhost:8000 --clean"
 
