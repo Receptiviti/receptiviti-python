@@ -50,7 +50,8 @@ def norming(
         secret (str): Your API secret.
         url (str): The URL of the API; defaults to `https://api.receptiviti.com`.
         verbose (bool): If `False`, will not show status messages.
-        **kwargs (Any): Additional arguments to specify how texts are read in and processed;
+        **kwargs (Any): Additional arguments to specify how texts are read in and processed
+            (excluding than `cores`);
             see [receptiviti.request][receptiviti.request].
 
     Returns:
@@ -87,6 +88,7 @@ def norming(
         receptiviti.norming("new_context", delete=True)
         ```
     """
+    kwargs["cores"] = 1
     _, url, key, secret = _resolve_request_def(url, key, secret, dotenv)
     auth = requests.auth.HTTPBasicAuth(key, secret)
     if name_only:
