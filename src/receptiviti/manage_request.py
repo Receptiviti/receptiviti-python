@@ -13,7 +13,7 @@ from glob import glob
 from multiprocessing import Process, Queue, current_process
 from tempfile import TemporaryDirectory, gettempdir
 from time import perf_counter, sleep, time
-from typing import List, Union, Tuple
+from typing import Dict, List, Literal, Tuple, TypedDict, Union
 
 import numpy
 import pandas
@@ -23,6 +23,7 @@ import pyarrow.dataset
 import pyarrow.feather
 import pyarrow.parquet
 import requests
+import requests.auth
 from chardet.universaldetector import UniversalDetector
 from tqdm import tqdm
 
@@ -32,6 +33,27 @@ CACHE = gettempdir() + "/receptiviti_cache/"
 REQUEST_CACHE = gettempdir() + "/receptiviti_request_cache/"
 
 
+class Options(TypedDict):
+    url: str
+    version: str
+    auth: requests.auth.HTTPBasicAuth
+    retries: int
+    add: Dict[str, Union[str, List[str]]]
+    request_cache: bool
+    cache: str
+    cache_overwrite: bool
+    cache_format: Literal["parquet", "feather"]
+    to_norming: bool
+    make_request: bool
+    text_is_path: bool
+    text_column: Union[str, None]
+    id_column: Union[str, None]
+    collapse_lines: bool
+    encoding: Union[str, None]
+    collect_results: bool
+    add_hash: str
+
+
 def _manage_request(
     text: Union[str, List[str], pandas.DataFrame, None] = None,
     ids: Union[str, List[str], List[int], None] = None,
@@ -39,32 +61,32 @@ def _manage_request(
     id_column: Union[str, None] = None,
     files: Union[List[str], None] = None,
     directory: Union[str, None] = None,
-    file_type="txt",
+    file_type: str = "txt",
     encoding: Union[str, None] = None,
-    context="written",
-    api_args: Union[dict, None] = None,
-    bundle_size=1000,
-    bundle_byte_limit=75e5,
-    collapse_lines=False,
-    retry_limit=50,
-    request_cache=True,
-    cores=1,
-    collect_results=True,
+    context: str = "written",
+    api_args: Union[Dict[str, Union[str, List[str]]], None] = None,
+    bundle_size: int = 1000,
+    bundle_byte_limit: float = 75e5,
+    collapse_lines: bool = False,
+    retry_limit: int = 50,
+    request_cache: bool = True,
+    cores: int = 1,
+    collect_results: bool = True,
     in_memory: Union[bool, None] = None,
-    verbose=False,
+    verbose: bool = False,
     progress_bar: Union[str, bool] = os.getenv("RECEPTIVITI_PB", "True"),
-    make_request=True,
-    text_as_paths=False,
+    make_request: bool = True,
+    text_as_paths: bool = False,
     dotenv: Union[bool, str] = True,
-    cache=os.getenv("RECEPTIVITI_CACHE", ""),
-    cache_overwrite=False,
-    cache_format=os.getenv("RECEPTIVITI_CACHE_FORMAT", "parquet"),
-    key=os.getenv("RECEPTIVITI_KEY", ""),
-    secret=os.getenv("RECEPTIVITI_SECRET", ""),
-    url=os.getenv("RECEPTIVITI_URL", ""),
-    version=os.getenv("RECEPTIVITI_VERSION", ""),
-    endpoint=os.getenv("RECEPTIVITI_ENDPOINT", ""),
-    to_norming=False,
+    cache: str = os.getenv("RECEPTIVITI_CACHE", ""),
+    cache_overwrite: bool = False,
+    cache_format: str = os.getenv("RECEPTIVITI_CACHE_FORMAT", "parquet"),
+    key: str = os.getenv("RECEPTIVITI_KEY", ""),
+    secret: str = os.getenv("RECEPTIVITI_SECRET", ""),
+    url: str = os.getenv("RECEPTIVITI_URL", ""),
+    version: str = os.getenv("RECEPTIVITI_VERSION", ""),
+    endpoint: str = os.getenv("RECEPTIVITI_ENDPOINT", ""),
+    to_norming: bool = False,
 ) -> Tuple[pandas.DataFrame, Union[pandas.DataFrame, None], bool]:
     if cores > 1 and current_process().name != "MainProcess":
         return (pandas.DataFrame(), None, False)
@@ -199,7 +221,7 @@ def _manage_request(
         numpy.sort(numpy.tile(numpy.arange(n_bundles) + 1, bundle_size))[:n_texts],
         group_keys=False,
     )
-    bundles = []
+    bundles: Union[List[pandas.DataFrame], List[pandas.DataFrame]] = []
     for _, group in groups:
         if sys.getsizeof(group) > bundle_byte_limit:
             start = current = end = 0
@@ -227,7 +249,7 @@ def _manage_request(
         )
 
     # process bundles
-    opts = {
+    opts: Options = {
         "url": (
             full_url
             if to_norming
@@ -242,7 +264,7 @@ def _manage_request(
         "request_cache": request_cache,
         "cache": cache,
         "cache_overwrite": cache_overwrite,
-        "cache_format": cache_format,
+        "cache_format": "feather" if cache_format == "feather" else "parquet",
         "to_norming": to_norming,
         "make_request": make_request,
         "text_is_path": text_is_path,
@@ -251,6 +273,7 @@ def _manage_request(
         "collapse_lines": collapse_lines,
         "encoding": encoding,
         "collect_results": collect_results,
+        "add_hash": "",
     }
     if version != "v1" and api_args:
         opts["url"] += "?" + urllib.parse.urlencode(api_args)
@@ -318,8 +341,8 @@ def _queue_manager(
     waiter: "Queue[List[Union[pandas.DataFrame, None]]]",
     n_texts: int,
     n_bundles: int,
-    use_pb=True,
-    verbose=False,
+    use_pb: bool = True,
+    verbose: bool = False,
 ):
     if use_pb:
         pb = tqdm(total=n_texts, leave=verbose)
@@ -338,8 +361,8 @@ def _queue_manager(
 
 def _process(
     bundles: List[pandas.DataFrame],
-    opts: dict,
-    queue: Union["Queue[tuple[int, Union[pandas.DataFrame, None]]]", None] = None,
+    opts: Options,
+    queue: Union["Queue[Tuple[int, Union[pandas.DataFrame, None]]]", None] = None,
     pb: Union[tqdm, None] = None,
 ) -> List[Union[pandas.DataFrame, None]]:
     reses: List[Union[pandas.DataFrame, None]] = []
@@ -445,7 +468,7 @@ def _process(
     return reses
 
 
-def _prepare_results(body: str, bundle_hash: str, opts: dict):
+def _prepare_results(body: str, bundle_hash: str, opts: Options):
     raw_res = _request(
         body,
         opts["url"],
@@ -474,10 +497,10 @@ def _request(
     url: str,
     auth: requests.auth.HTTPBasicAuth,
     retries: int,
-    cache="",
-    to_norming=False,
-    execute=True,
-) -> Union[dict, str]:
+    cache: str = "",
+    to_norming: bool = False,
+    execute: bool = True,
+) -> Union[Dict[str, str], str]:
     if not os.path.isfile(cache):
         if not execute:
             return "`make_request` is `False`, but there are texts with no cached results"

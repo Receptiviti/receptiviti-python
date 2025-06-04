@@ -4,7 +4,7 @@ import os
 import re
 
 
-def readin_env(path=".", name=".env", overwrite=False) -> None:
+def readin_env(path: str = ".", name: str = ".env", overwrite: bool = False) -> None:
     """
     Set environment variables from a .env file.
 

@@ -8,6 +8,7 @@ from typing import Dict, List, Union
 
 import pandas
 import requests
+import requests.auth
 
 from receptiviti.manage_request import _manage_request, _resolve_request_def
 
@@ -15,16 +16,18 @@ from receptiviti.manage_request import _manage_request, _resolve_request_def
 def norming(
     name: Union[str, None] = None,
     text: Union[str, List[str], pandas.DataFrame, None] = None,
-    options: Union[dict, None] = None,
-    delete=False,
-    name_only=False,
+    options: Union[Dict[str, Union[str, int]], None] = None,
+    delete: bool = False,
+    name_only: bool = False,
     dotenv: Union[bool, str] = True,
-    key=os.getenv("RECEPTIVITI_KEY", ""),
-    secret=os.getenv("RECEPTIVITI_SECRET", ""),
-    url=os.getenv("RECEPTIVITI_URL", ""),
-    verbose=True,
+    key: str = os.getenv("RECEPTIVITI_KEY", ""),
+    secret: str = os.getenv("RECEPTIVITI_SECRET", ""),
+    url: str = os.getenv("RECEPTIVITI_URL", ""),
+    verbose: bool = True,
     **kwargs,
-) -> Union[None, List[str], pandas.DataFrame, pandas.Series, Dict[str, Union[pandas.Series, pandas.DataFrame, None]]]:
+) -> Union[
+    None, List[str], pandas.DataFrame, pandas.Series, Dict[str, Union[str, pandas.Series, pandas.DataFrame, None]]
+]:
     """
     View or Establish Custom Norming Contexts.
 

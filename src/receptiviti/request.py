@@ -9,7 +9,7 @@ from math import ceil
 from multiprocessing import current_process
 from tempfile import gettempdir
 from time import perf_counter, time
-from typing import List, Union
+from typing import Dict, List, Literal, Union
 
 import pandas
 import pyarrow.dataset
@@ -33,36 +33,36 @@ def request(
     directory: Union[str, None] = None,
     file_type: str = "txt",
     encoding: Union[str, None] = None,
-    return_text=False,
-    context="written",
+    return_text: bool = False,
+    context: str = "written",
     custom_context: Union[str, bool] = False,
-    api_args: Union[dict, None] = None,
+    api_args: Union[Dict[str, Union[str, List[str]]], None] = None,
     frameworks: Union[str, List[str], None] = None,
     framework_prefix: Union[bool, None] = None,
-    bundle_size=1000,
-    bundle_byte_limit=75e5,
-    collapse_lines=False,
-    retry_limit=50,
-    clear_cache=False,
-    request_cache=True,
-    cores=1,
-    collect_results=True,
+    bundle_size: int = 1000,
+    bundle_byte_limit: float = 75e5,
+    collapse_lines: bool = False,
+    retry_limit: int = 50,
+    clear_cache: bool = False,
+    request_cache: bool = True,
+    cores: int = 1,
+    collect_results: bool = True,
     in_memory: Union[bool, None] = None,
-    verbose=False,
+    verbose: bool = False,
     progress_bar: Union[str, bool] = os.getenv("RECEPTIVITI_PB", "True"),
-    overwrite=False,
-    make_request=True,
-    text_as_paths=False,
+    overwrite: bool = False,
+    make_request: bool = True,
+    text_as_paths: bool = False,
     dotenv: Union[bool, str] = True,
     cache: Union[str, bool] = os.getenv("RECEPTIVITI_CACHE", ""),
-    cache_degragment=True,
-    cache_overwrite=False,
-    cache_format=os.getenv("RECEPTIVITI_CACHE_FORMAT", ""),
-    key=os.getenv("RECEPTIVITI_KEY", ""),
-    secret=os.getenv("RECEPTIVITI_SECRET", ""),
-    url=os.getenv("RECEPTIVITI_URL", ""),
-    version=os.getenv("RECEPTIVITI_VERSION", ""),
-    endpoint=os.getenv("RECEPTIVITI_ENDPOINT", ""),
+    cache_degragment: bool = True,
+    cache_overwrite: bool = False,
+    cache_format: str = os.getenv("RECEPTIVITI_CACHE_FORMAT", ""),
+    key: str = os.getenv("RECEPTIVITI_KEY", ""),
+    secret: str = os.getenv("RECEPTIVITI_SECRET", ""),
+    url: str = os.getenv("RECEPTIVITI_URL", ""),
+    version: str = os.getenv("RECEPTIVITI_VERSION", ""),
+    endpoint: str = os.getenv("RECEPTIVITI_ENDPOINT", ""),
 ) -> Union[pandas.DataFrame, None]:
     """
     Send texts to be scored by the API.
@@ -253,8 +253,11 @@ def request(
     if context != "written":
         if verbose:
             print(f"retrieving norming contexts ({perf_counter() - start_time:.4f})")
-        available_contexts: List[str] = norming(name_only=True, url=url, key=key, secret=secret, verbose=False)
-        if ("custom/" + context if custom_context else context) not in available_contexts:
+        available_contexts = norming(name_only=True, url=url, key=key, secret=secret, verbose=False)
+        if (
+            not isinstance(available_contexts, list)
+            or ("custom/" + context if custom_context else context) not in available_contexts
+        ):
             msg = f"norming context {context} is not on record or is not completed"
             raise RuntimeError(msg)
 
@@ -333,8 +336,8 @@ def request(
     if cache and cache_degragment:
         writer = _get_writer(cache_format)
         for bin_dir in glob(cache + "/bin=*/"):
-            _defragment_bin(bin_dir, cache_format, writer)
-    if not collect_results:
+            _defragment_bin(bin_dir, "feather" if cache_format == "feather" else "parquet", writer)
+    if not collect_results or res is None:
         if verbose:
             print(f"done ({perf_counter() - start_time:.4f})")
         return None
@@ -396,7 +399,7 @@ def request(
     return res
 
 
-def _defragment_bin(bin_dir: str, write_format: str, writer):
+def _defragment_bin(bin_dir: str, write_format: Literal["parquet", "feather"], writer):
     fragments = glob(f"{bin_dir}/*.{write_format}")
     if len(fragments) > 1:
         data = pyarrow.dataset.dataset(fragments, format=write_format, exclude_invalid_files=True).to_table()

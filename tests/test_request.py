@@ -36,15 +36,15 @@ class TestRequest:
 
     def test_single_text(self):
         res = receptiviti.request("text to score")
-        assert res["summary.word_count"][0] == 3
+        assert res is not None and res["summary.word_count"][0] == 3
 
     def test_single_text_v2(self):
         res = receptiviti.request("text to score", version="v2")
-        assert res["summary.word_count"][0] == 3
+        assert res is not None and res["summary.word_count"][0] == 3
 
     def test_contexts(self):
         res = receptiviti.request("text to score", version="v2", context="spoken")
-        assert res["drives.power"][0] > 0.05
+        assert res is not None and res["drives.power"][0] > 0.05
 
     def test_invalid_text(self):
         with pytest.raises(RuntimeError, match="one of your texts is over the bundle size limit"):
@@ -54,20 +54,24 @@ class TestRequest:
 
     def test_multi_text(self):
         res = receptiviti.request(["text to score", float("nan"), "another text", "another text"])
+        assert res is not None
         assert str(res["summary.word_count"][1]) == "nan"
         assert res["summary.word_count"].iloc[pandas.Index([0, 2, 3])].to_list() == [3, 2, 2]
 
     def test_framework_selection(self):
         res = receptiviti.request(["text to score", "another text"], frameworks="summary")
+        assert res is not None
         assert res.shape == (2, 10)
         assert res["word_count"].to_list() == [3, 2]
 
     def test_framework_prefix(self):
         res = receptiviti.request(["text to score", "another text"], frameworks="summary", framework_prefix=True)
+        assert res is not None
         assert res["summary.word_count"].to_list() == [3, 2]
 
     def test_id_text(self):
         res = receptiviti.request(["text to score", "another text"], ids=["a", "b"], return_text=True)
+        assert res is not None
         assert res["text"].to_list() == ["text to score", "another text"]
         assert res["id"].to_list() == ["a", "b"]
 
@@ -86,11 +90,15 @@ class TestRequest:
                 txt.write("\n".join(text))
             csv_file = f"{tempdir}/text.csv"
             pandas.DataFrame({"text": text}).to_csv(csv_file)
-            assert receptiviti.request(txt_file)["id"].to_list() == [
+            res = receptiviti.request(txt_file)
+            assert res is not None
+            assert res["id"].to_list() == [
                 txt_file + "1",
                 txt_file + "2",
             ]
-            assert receptiviti.request(csv_file, text_column="text")["id"].to_list() == [
+            res = receptiviti.request(csv_file, text_column="text")
+            assert res is not None
+            assert res["id"].to_list() == [
                 csv_file + "1",
                 csv_file + "2",
             ]
@@ -123,6 +131,13 @@ class TestRequest:
             res_multi_csv_collapse = receptiviti.request(
                 csv_files, text_column="raw_text", collapse_lines=True, cache=cache
             )
+        assert res_single is not None
+        assert res_multi is not None
+        assert res_misencode is not None
+        assert res_multi_txt is not None
+        assert res_multi_csv is not None
+        assert res_multi_txt_collapse is not None
+        assert res_multi_csv_collapse is not None
         assert not all((a == b for a, b in zip(res_multi["text"], res_misencode["text"])))
         assert res_single["summary.word_count"].sum() == res_multi["summary.word_count"].sum()
         assert res_multi["summary.word_count"].sum() == res_multi_txt["summary.word_count"].sum()
@@ -147,6 +162,8 @@ class TestRequest:
                 bundle_size=20,
                 cache=tempdir,
             )
+        assert res_parallel is not None
+        assert res_serial is not None
         ids = ["../data.csv" + str(i + 1) for i in range(len(res_parallel))]
         assert all(res_parallel["id"] == ids)
         assert all(res_serial["id"] == ids)
@@ -158,7 +175,7 @@ class TestRequest:
             with redirect_stdout(StringIO()) as out:
                 receptiviti.request(
                     "text to process",
-                    url=os.getenv("RECEPTIVITI_URL") + "v2/analyze",
+                    url=os.getenv("RECEPTIVITI_URL", "") + "v2/analyze",
                     cache=tempdir,
                     verbose=True,
                 )

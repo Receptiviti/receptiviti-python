@@ -14,7 +14,7 @@ def status(
     key: str = os.getenv("RECEPTIVITI_KEY", ""),
     secret: str = os.getenv("RECEPTIVITI_SECRET", ""),
     dotenv: Union[bool, str] = False,
-    verbose=True,
+    verbose: bool = True,
 ) -> Union[requests.Response, None]:
     """
     Check the API's status.
