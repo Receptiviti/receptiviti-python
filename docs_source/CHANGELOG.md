@@ -1,6 +1,6 @@
 # Changelog
 
-## receptiviti 0.2.0
+## [receptiviti 0.2.0](https://pypi.org/project/receptiviti/0.2.0)
 
 ### Additions
 
@@ -11,7 +11,6 @@
 
 ### Improvements
 
-- Makes `pyarrow` optional.
 - Improves cache performance.
 - Validates `version` and `endpoint`.
 
