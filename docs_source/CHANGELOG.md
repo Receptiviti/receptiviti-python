@@ -1,6 +1,6 @@
 # Changelog
 
-## receptiviti 0.1.3
+## receptiviti 0.2.0
 
 ### Additions
 
