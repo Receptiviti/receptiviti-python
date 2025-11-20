@@ -521,14 +521,15 @@ def _request(
         return data["results"] if "results" in data else data
     if os.path.isfile(cache):
         os.remove(cache)
-    if retries > 0 and "code" in data and data["code"] == 1420:
+    details = data["error"] if "error" in data else data
+    if retries > 0 and "code" in details and details["code"] == 1420:
         cd = re.search(
             "[0-9]+(?:\\.[0-9]+)?",
             (res.json()["message"] if res.headers["Content-Type"] == "application/json" else res.text),
         )
         sleep(1 if cd is None else float(cd[0]) / 1e3)
         return _request(body, url, auth, retries - 1, cache, to_norming)
-    return f"request failed, and have no retries: {res.status_code}: {data['error'] if 'error' in data else res.reason}"
+    return f"request failed, and have no retries: {res.status_code}: {details['message'] if 'message' in details else details}"
 
 
 def _manage_request_cache():
