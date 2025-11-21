@@ -27,7 +27,7 @@ import requests.auth
 from chardet.universaldetector import UniversalDetector
 from tqdm import tqdm
 
-from receptiviti.status import _resolve_request_def, status
+from receptiviti.status import _parse_url, _resolve_request_def, status
 
 CACHE = gettempdir() + "/receptiviti_cache/"
 REQUEST_CACHE = gettempdir() + "/receptiviti_request_cache/"
@@ -99,31 +99,12 @@ def _manage_request(
 
     # resolve credentials and check status
     full_url, url, key, secret = _resolve_request_def(url, key, secret, dotenv)
-    url_parts = re.search("/([Vv]\\d+)/?([^/]+)?", full_url)
-    if url_parts:
-        from_url = url_parts.groups()
-        if not version and from_url[0] is not None:
-            version = from_url[0]
-        if not endpoint and from_url[1] is not None:
-            endpoint = from_url[1]
     if to_norming:
         version = "v2"
         endpoint = "norming"
         request_cache = False
     else:
-        if not version:
-            version = os.getenv("RECEPTIVITI_VERSION", "v1")
-        version = version.lower()
-        if not version or not re.search("^v\\d+$", version):
-            msg = f"invalid version: {version}"
-            raise RuntimeError(msg)
-        if not endpoint:
-            endpoint_default = "framework" if version == "v1" else "analyze"
-            endpoint = os.getenv("RECEPTIVITI_ENDPOINT", endpoint_default)
-        endpoint = re.sub("^.*/", "", endpoint).lower()
-        if not endpoint or re.search("[^a-z]", endpoint):
-            msg = f"invalid endpoint: {endpoint}"
-            raise RuntimeError(msg)
+        version, endpoint = _parse_url(full_url, version, endpoint)
     api_status = status(url, key, secret, dotenv, verbose=False)
     if api_status is None or api_status.status_code != 200:
         msg = (
@@ -529,7 +510,10 @@ def _request(
         )
         sleep(1 if cd is None else float(cd[0]) / 1e3)
         return _request(body, url, auth, retries - 1, cache, to_norming)
-    return f"request failed, and have no retries: {res.status_code}: {details['message'] if 'message' in details else details}"
+    return (
+        "request failed, and have no retries: "
+        f"{res.status_code}: {details['message'] if 'message' in details else details}"
+    )
 
 
 def _manage_request_cache():

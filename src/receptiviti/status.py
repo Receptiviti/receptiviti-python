@@ -39,7 +39,7 @@ def status(
     """
     _, url, key, secret = _resolve_request_def(url, key, secret, dotenv)
     try:
-        res = requests.get(url.lower() + "/v1/ping", auth=(key, secret), timeout=9999)
+        res = requests.get(f"{url.lower()}/v1/ping", auth=(key, secret), timeout=9999)
     except requests.exceptions.RequestException:
         if verbose:
             print("Status: ERROR\nMessage: URL is unreachable")
@@ -79,3 +79,28 @@ def _resolve_request_def(url: str, key: str, secret: str, dotenv: Union[bool, st
             msg = "specify your secret, or set it to the RECEPTIVITI_SECRET environment variable"
             raise RuntimeError(secret)
     return (full_url, url, key, secret)
+
+
+def _parse_url(url: str, version: str, endpoint: str):
+    url_parts = re.search("/([Vv]\\d+)/?([^/]+)?", url)
+    if url_parts:
+        from_url = url_parts.groups()
+        if not version and from_url[0] is not None:
+            version = from_url[0]
+        if not endpoint and from_url[1] is not None:
+            endpoint = from_url[1]
+    else:
+        if not version:
+            version = os.getenv("RECEPTIVITI_VERSION", "v1")
+        version = version.lower()
+        if not version or not re.search("^v\\d+$", version):
+            msg = f"invalid version: {version}"
+            raise RuntimeError(msg)
+        if not endpoint:
+            endpoint_default = "framework" if version == "v1" else "analyze"
+            endpoint = os.getenv("RECEPTIVITI_ENDPOINT", endpoint_default)
+        endpoint = re.sub("^.*/", "", endpoint).lower()
+        if not endpoint or re.search("[^a-z]", endpoint):
+            msg = f"invalid endpoint: {endpoint}"
+            raise RuntimeError(msg)
+    return (version, endpoint)
