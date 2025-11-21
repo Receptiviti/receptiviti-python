@@ -6,7 +6,7 @@ An R package is also available at [Receptiviti/receptiviti-r](https://receptivit
 
 If needed, download Python from [python.org](https://www.python.org/downloads), then install the package with pip:
 
-Release ([version 0.2.0](https://pypi.org/project/receptiviti/0.2.0))
+Release ([version 0.2.1](https://pypi.org/project/receptiviti/0.2.1))
 
 ```sh
 pip install receptiviti

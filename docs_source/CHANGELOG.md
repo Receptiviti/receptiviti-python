@@ -1,5 +1,11 @@
 # Changelog
 
+## [receptiviti 0.2.1](https://pypi.org/project/receptiviti/0.2.1)
+
+### Bug Fixes
+
+- Fixes v1 error message display.
+
 ## [receptiviti 0.2.0](https://pypi.org/project/receptiviti/0.2.0)
 
 ### Additions
@@ -14,7 +20,7 @@
 - Improves cache performance.
 - Validates `version` and `endpoint`.
 
-## Bug Fixes
+### Bug Fixes
 
 - Avoids skipping a row when splitting oversized bundles.
 - Avoids overwriting existing cache results within overlapping bins on update.

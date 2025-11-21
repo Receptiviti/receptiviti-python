@@ -1,0 +1,4 @@
+[data-md-color-scheme='slate'] {
+  --md-hue: 220;
+  --md-typeset-a-color: hsla(var(--md-hue), 51%, 42%, 1);
+}
