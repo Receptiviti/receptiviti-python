@@ -13,6 +13,7 @@ def status(
     url: str = os.getenv("RECEPTIVITI_URL", ""),
     key: str = os.getenv("RECEPTIVITI_KEY", ""),
     secret: str = os.getenv("RECEPTIVITI_SECRET", ""),
+    version: str = os.getenv("version", ""),
     dotenv: Union[bool, str] = False,
     verbose: bool = True,
 ) -> Union[requests.Response, None]:
@@ -25,6 +26,7 @@ def status(
       url (str): The URL of the API.
       key (str): Your API key.
       secret (str): Your API secret.
+      version (str): Version of the API; defaults to `v1`.
       dotenv (bool | str): Path to a .env file to read environment variables from, or `True`
         to look for a file in the current directory.
       verbose (bool): If `False`, will not print status messages.
@@ -37,9 +39,10 @@ def status(
         receptiviti.status()
         ```
     """
-    _, url, key, secret = _resolve_request_def(url, key, secret, dotenv)
+    full_url, url, key, secret = _resolve_request_def(url, key, secret, dotenv)
+    version, _ = _parse_url(full_url, version, "ping")
     try:
-        res = requests.get(f"{url.lower()}/v1/ping", auth=(key, secret), timeout=9999)
+        res = requests.get(f"{url.lower()}/{version}/ping", auth=(key, secret), timeout=60)
     except requests.exceptions.RequestException:
         if verbose:
             print("Status: ERROR\nMessage: URL is unreachable")
@@ -53,7 +56,7 @@ def status(
                 str(res.status_code)
                 + (" (" + str(content["code"]) + ")" if "code" in content else "")
                 + ": "
-                + content["pong" if "pong" in content else "message"]
+                + content["ping" if "ping" in content else "pong" if "pong" in content else "message"]
             )
         )
     return res

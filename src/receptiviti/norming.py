@@ -97,7 +97,7 @@ def norming(
     if name_only:
         if verbose:
             print("requesting list of existing custom norming contests")
-        req = requests.get(url + "/v2/norming/", auth=auth, timeout=9999)
+        req = requests.get(url + "/v2/norming/", auth=auth, timeout=60)
         if req.status_code != 200:
             msg = f"failed to make norming list request: {req.status_code} {req.reason}"
             raise RuntimeError(msg)
@@ -115,7 +115,7 @@ def norming(
     # list current context
     if verbose:
         print("requesting list of existing custom norming contests")
-    req = requests.get(url, auth=auth, timeout=9999)
+    req = requests.get(url, auth=auth, timeout=60)
     if req.status_code != 200:
         msg = f"failed to make custom norming list request: {req.status_code} {req.reason}"
         raise RuntimeError(msg)
@@ -137,7 +137,7 @@ def norming(
     context_id = "custom/" + name
     if len(norms) and context_id in norms["name"].values:
         if delete:
-            res = requests.delete(url + name, auth=auth, timeout=9999)
+            res = requests.delete(url + name, auth=auth, timeout=60)
             content = res.json() if res.text[:1] == "[" else {"message": res.text}
             if res.status_code != 200:
                 msg = f"Request Error ({res.status_code!s})" + (

@@ -25,7 +25,7 @@ class TestStatus:
         assert "custom/test" == res["name"]
 
     def test_updating(self):
-        norming_context = "test"
+        norming_context = "short_test"
         receptiviti.norming(norming_context, delete=True)
         receptiviti.norming(norming_context, options={"min_word_count": 1})
         with pytest.raises(RuntimeError, match="is not on record"):

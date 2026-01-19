@@ -105,7 +105,7 @@ def _manage_request(
         request_cache = False
     else:
         version, endpoint = _parse_url(full_url, version, endpoint)
-    api_status = status(url, key, secret, dotenv, verbose=False)
+    api_status = status(url, key, secret, version, dotenv, verbose=False)
     if api_status is None or api_status.status_code != 200:
         msg = (
             "URL is not reachable"
