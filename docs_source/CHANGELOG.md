@@ -1,5 +1,11 @@
 # Changelog
 
+## [receptiviti 0.2.2](https://pypi.org/project/receptiviti/0.2.2)
+
+### Additions
+
+- Adds `version` argument to `receptiviti.status`.
+
 ## [receptiviti 0.2.1](https://pypi.org/project/receptiviti/0.2.1)
 
 ### Bug Fixes
